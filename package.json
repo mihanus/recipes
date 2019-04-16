@@ -1,0 +1,20 @@
+{
+    "name": "Recipes",
+    "version": "1.0.0",
+    "author": "Michael Hanus <mh@informatik.uni-kiel.de>",
+    "synopsis": "A web application for managing recipes",
+    "category": [ "Web" ],
+    "dependencies": {
+        "base"  : ">= 1.0.0, < 2.0.0",
+        "cdbi"  : ">= 2.0.0",
+        "html"  : ">= 2.1.0",
+        "random": ">= 0.0.1",
+        "searchtree": ">= 1.0.0",
+        "wui"   : ">= 2.0.0"
+    },
+    "compilerCompatibility": {
+        "pakcs": ">= 2.0.0",
+        "kics2": ">= 2.0.0"
+    },
+    "sourceDirs": [ "src", "src/Model" ]
+}

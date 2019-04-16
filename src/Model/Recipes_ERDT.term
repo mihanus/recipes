@@ -1,0 +1,47 @@
+{- ERD specification transformed from /home/mh/home/curry/applications/recipes2/Recipes.erdterm -}
+
+ ERD "Recipes"
+   [Entity "Tagging"
+           [Attribute "RecipeTaggingKey" (KeyDom "Recipe") PKey False,
+            Attribute "KeywordTaggingKey" (KeyDom "Keyword") PKey False],
+    Entity "RecipeCategory"
+           [Attribute "CategoryRecipeCategoryKey" (KeyDom "Category") PKey False,
+            Attribute "RecipeRecipeCategoryKey" (KeyDom "Recipe") PKey False],
+    Entity "Category"
+           [Attribute "Key" (IntDom Nothing) PKey False,
+            Attribute "Name" (StringDom Nothing) NoKey False,
+            Attribute "Position" (IntDom Nothing) NoKey False,
+            Attribute "CategoryParentCategoryKey" (KeyDom "Category") NoKey True],
+    Entity "Keyword"
+           [Attribute "Key" (IntDom Nothing) PKey False,
+            Attribute "Name" (StringDom Nothing) Unique False],
+    Entity "Recipe"
+           [Attribute "Key" (IntDom Nothing) PKey False,
+            Attribute "Name" (StringDom Nothing) NoKey False,
+            Attribute "Reference" (StringDom Nothing) NoKey True],
+    Entity "RecipeDescription"
+           [Attribute "Key" (IntDom Nothing) PKey False,
+            Attribute "Servings" (StringDom Nothing) NoKey False,
+            Attribute "Ingredients" (StringDom Nothing) NoKey False,
+            Attribute "Directions" (StringDom Nothing) NoKey False,
+            Attribute "PrepTime" (StringDom Nothing) NoKey True,
+            Attribute "CookTime" (StringDom Nothing) NoKey True,
+            Attribute "RecipeRecDescKey" (KeyDom "Recipe") Unique False]]
+   [Relationship "RecDesc"
+                 [REnd "Recipe" "descOf" (Exactly 1),
+                  REnd "RecipeDescription" "withDesc" (Between 0 (Max 1))],
+    Relationship ""
+                 [REnd "Recipe" "" (Exactly 1),
+                  REnd "Tagging" "recWithKeyword" (Between 0 Infinite)],
+    Relationship ""
+                 [REnd "Keyword" "" (Exactly 1),
+                  REnd "Tagging" "keywordsOf" (Between 0 Infinite)],
+    Relationship ""
+                 [REnd "Category" "" (Exactly 1),
+                  REnd "RecipeCategory" "catWithRecipe" (Between 0 Infinite)],
+    Relationship ""
+                 [REnd "Recipe" "" (Exactly 1),
+                  REnd "RecipeCategory" "recInCategory" (Between 0 Infinite)],
+    Relationship "ParentCategory"
+                 [REnd "Category" "catInCategory" (Between 0 (Max 1)),
+                  REnd "Category" "catWithCategory" (Between 0 Infinite)]]

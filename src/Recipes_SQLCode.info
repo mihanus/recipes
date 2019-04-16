@@ -1,0 +1,75 @@
+SQLParserInfoType.PInfo "/net/medoc/home/mh/home/data/recipes/Recipes.db" "Recipes"
+ [(("RecipeDescription","descOf","Recipe"),SQLParserInfoType.NtoOne "RecDesc")
+ ,(("Recipe","withDesc","RecipeDescription"),SQLParserInfoType.OnetoN "RecDesc")
+ ,(("Recipe","recWithKeyword","Keyword"),SQLParserInfoType.MtoN "Tagging")
+ ,(("Recipe","Tagging","Keyword"),SQLParserInfoType.MtoN "Tagging")
+ ,(("Keyword","keywordsOf","Recipe"),SQLParserInfoType.MtoN "Tagging")
+ ,(("Keyword","Tagging","Recipe"),SQLParserInfoType.MtoN "Tagging")
+ ,(("Category","catWithRecipe","Recipe")
+  ,SQLParserInfoType.MtoN "RecipeCategory")
+ ,(("Category","RecipeCategory","Recipe")
+  ,SQLParserInfoType.MtoN "RecipeCategory")
+ ,(("Recipe","recInCategory","Category")
+  ,SQLParserInfoType.MtoN "RecipeCategory")
+ ,(("Recipe","RecipeCategory","Category")
+  ,SQLParserInfoType.MtoN "RecipeCategory")
+ ,(("Category","catInCategory","Category")
+  ,SQLParserInfoType.NtoOne "ParentCategory")
+ ,(("Category","catWithCategory","Category")
+  ,SQLParserInfoType.OnetoN "ParentCategory")]
+ [("taggingRecipeTaggingKey",False)
+ ,("taggingKeywordTaggingKey",False)
+ ,("recipeCategoryCategoryRecipeCategoryKey",False)
+ ,("recipeCategoryRecipeRecipeCategoryKey",False)
+ ,("categoryKey",False)
+ ,("categoryName",False)
+ ,("categoryPosition",False)
+ ,("categoryCategoryParentCategoryKey",True)
+ ,("keywordKey",False)
+ ,("keywordName",False)
+ ,("recipeKey",False)
+ ,("recipeName",False)
+ ,("recipeReference",True)
+ ,("recipeDescriptionKey",False)
+ ,("recipeDescriptionServings",False)
+ ,("recipeDescriptionIngredients",False)
+ ,("recipeDescriptionDirections",False)
+ ,("recipeDescriptionPrepTime",True)
+ ,("recipeDescriptionCookTime",True)
+ ,("recipeDescriptionRecipeRecDescKey",False)]
+ [("tagging",("Tagging",["RecipeTaggingKey","KeywordTaggingKey"]))
+ ,("recipecategory"
+  ,("RecipeCategory",["CategoryRecipeCategoryKey","RecipeRecipeCategoryKey"]))
+ ,("category"
+  ,("Category",["Key","Name","Position","CategoryParentCategoryKey"]))
+ ,("keyword",("Keyword",["Key","Name"]))
+ ,("recipe",("Recipe",["Key","Name","Reference"]))
+ ,("recipedescription"
+  ,("RecipeDescription"
+   ,["Key"
+    ,"Servings"
+    ,"Ingredients"
+    ,"Directions"
+    ,"PrepTime"
+    ,"CookTime"
+    ,"RecipeRecDescKey"]))]
+ [("taggingRecipeTaggingKey","Recipe")
+ ,("taggingKeywordTaggingKey","Keyword")
+ ,("recipeCategoryCategoryRecipeCategoryKey","Category")
+ ,("recipeCategoryRecipeRecipeCategoryKey","Recipe")
+ ,("categoryKey","Category")
+ ,("categoryName","string")
+ ,("categoryPosition","int")
+ ,("categoryCategoryParentCategoryKey","Category")
+ ,("keywordKey","Keyword")
+ ,("keywordName","string")
+ ,("recipeKey","Recipe")
+ ,("recipeName","string")
+ ,("recipeReference","string")
+ ,("recipeDescriptionKey","RecipeDescription")
+ ,("recipeDescriptionServings","string")
+ ,("recipeDescriptionIngredients","string")
+ ,("recipeDescriptionDirections","string")
+ ,("recipeDescriptionPrepTime","string")
+ ,("recipeDescriptionCookTime","string")
+ ,("recipeDescriptionRecipeRecDescKey","Recipe")]
