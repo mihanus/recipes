@@ -1,12 +1,14 @@
 module View.Category
   ( wCategory, tuple2Category, category2Tuple, wCategoryType
-  , blankCategoryView, createCategoryView, editCategoryView, showCategoryView
-  , listCategoryView ) where
+  , showCategoryView, listCategoryView
+  ) where
 
-import WUI
-import HTML.Base
-import Time
+import List       ( init )
 import Sort
+import Time
+
+import HTML.Base
+import HTML.WUI
 import HTML.Styles.Bootstrap3
 import System.Authentication
 import System.Spicey
@@ -43,48 +45,7 @@ wCategoryType category =
   transformWSpec (tuple2Category category,category2Tuple)
                  wCategory
 
---- Supplies a WUI form to create a new Category entity.
---- The fields of the entity have some default values.
-blankCategoryView
-  :: UserSessionInfo
-  -> ((String,Int) -> Controller) -> Controller -> [HtmlExp]
-blankCategoryView sinfo controller cancelcontroller =
-  createCategoryView sinfo "" 0 controller cancelcontroller
-
---- Supplies a WUI form to create a new Category entity.
---- Takes default values to be prefilled in the form fields.
-createCategoryView
-  :: UserSessionInfo
-  -> String
-  -> Int
-  -> ((String,Int) -> Controller) -> Controller -> [HtmlExp]
-createCategoryView
-    _
-    defaultName
-    defaultPosition
-    controller
-    cancelcontroller =
-  renderWuiForm wCategory
-   (defaultName,defaultPosition)
-   controller
-   cancelcontroller
-   "Neue Kategorie"
-   "Speichern"
-
---- Supplies a WUI form to edit the given Category entity.
---- Takes also associated entities and a list of possible associations
---- for every associated entity type.
-editCategoryView
-  :: UserSessionInfo
-  -> Category
-  -> (Category -> Controller) -> Controller -> [HtmlExp]
-editCategoryView _ category controller cancelcontroller =
-  renderWuiForm (wCategoryType category) category
-   controller
-   cancelcontroller
-   "Kategorie ändern"
-   "Speichern"
-
+------------------------------------------------------------------------------
 --- Supplies a view to show the details of a Category.
 showCategoryView :: UserSessionInfo -> Category -> [Recipe] -> [HtmlExp]
 showCategoryView _ category recipes =
@@ -100,40 +61,43 @@ leqCategory x1 x2 = categoryPosition x1 <= categoryPosition x2
 --- The arguments are the name of the category, the list of Category entities,
 --- and the controller functions to show, delete and edit entities.
 listCategoryView
- :: UserSessionInfo -> [(String,String)] -> String -> [Category] -> [Recipe]
-  -> (Category -> Controller) -> (Category -> Controller)
-  -> (Category -> Controller) -> Controller -> Controller
-  -> Controller -> Controller ->  [HtmlExp]
-listCategoryView sinfo parentcats catname categorys recipes _
-   editCategoryController _
-   newCategoryController newRecipeDescController newRecipeController
-   addRecipeController =
+ :: UserSessionInfo -> [(String,String)] -> Category -> [Category] -> [Recipe]
+  -> [HtmlExp]
+listCategoryView sinfo parentcats currentcat categorys recipes =
   [h4 (concatMap
          (\ (n,(cname,a)) ->
            [hrefButton (showControllerURL "Category"
                           ("list" : map snd (take n parentcats) ++ [a]))
                  [htxt cname], htxt " >> "])
-         (zip [0..] (dropLast parentcats))),
-   h1 [htxt catname],
+         (zip [0..] (init parentcats))),
+   h1 [htxt (categoryName currentcat)],
    spTable (map listCategory (sortBy leqCategory categorys) ++
             map (recipeToListView (map snd parentcats))
                 (sortBy leqRecipe recipes))] ++
    if isAdminSession sinfo
-   then [par [defaultButton "Neue Kategorie" (nextController newCategoryController),
-              defaultButton "Neues Rezept" (nextController newRecipeDescController),
-              defaultButton "Neue Rezeptreferenz"
-                       (nextController newRecipeController),
-              defaultButton "Vorhandenes Rezept hinzufuegen"
-                       (nextController addRecipeController)]]
+   then [par [hrefButton (showControllerURL "Recipe"
+                            ["new", showCategoryKey currentcat])
+                         [htxt "Neues Rezept"], nbsp,
+              hrefButton (showControllerURL "Recipe"
+                            ["newref", showCategoryKey currentcat])
+                         [htxt "Neue Rezeptreferenz"], nbsp,
+              hrefButton (showControllerURL "Recipe"
+                            ["add", showCategoryKey currentcat])
+                         [htxt "Vorhandenes Rezept hinzufügen"], nbsp,
+              hrefButton (showControllerURL "Category"
+                            ["new", showCategoryKey currentcat])
+                         [htxt "Neue Kategorie hinzufügen"]
+             ]]
    else []
   where
-    dropLast l = take (length l - 1) l
-
     listCategory :: Category -> [[HtmlExp]]
     listCategory category =
       categoryToListView (map snd parentcats) category
        ++ (if isAdminSession sinfo
-             then [[hrefButton
+             then [[hrefSmallButton
                       ("?Category/edit/" ++ showCategoryKey category)
-                      [htxt "Ändern"]]]
+                      [htxt "Ändern"]],
+                   [hrefSmallButton
+                      ("?Category/delete/" ++ showCategoryKey category)
+                      [htxt "Löschen"]]]
              else [])

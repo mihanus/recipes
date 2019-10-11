@@ -1,7 +1,7 @@
 module View.RecipesEntitiesToHtml where
 
-import WUI
 import HTML.Base
+import HTML.WUI
 import HTML.Styles.Bootstrap3
 import Time
 import System.Spicey

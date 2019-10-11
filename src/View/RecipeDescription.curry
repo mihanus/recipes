@@ -1,11 +1,10 @@
 module View.RecipeDescription
   ( wRecipeDescription, tuple2RecipeDescription, recipeDescription2Tuple
-  , wRecipeDescriptionType, blankRecipeDescriptionView
-  , createRecipeDescriptionView, editRecipeDescriptionView
+  , wRecipeDescriptionType
   , showRecipeDescriptionView, listRecipeDescriptionView ) where
 
-import WUI
 import HTML.Base
+import HTML.WUI
 import Time
 import Sort
 import HTML.Styles.Bootstrap3
@@ -66,78 +65,7 @@ wRecipeDescriptionType recipeDescription recipe recipeList =
    (tuple2RecipeDescription recipeDescription,recipeDescription2Tuple recipe)
    (wRecipeDescription recipeList)
 
---- Supplies a WUI form to create a new RecipeDescription entity.
---- The fields of the entity have some default values.
-blankRecipeDescriptionView
-  :: UserSessionInfo
-  -> [Recipe]
-  -> ((String,String,String,String,String,Recipe) -> Controller)
-  -> Controller -> [HtmlExp]
-blankRecipeDescriptionView sinfo possibleRecipes controller cancelcontroller =
-  createRecipeDescriptionView sinfo "" "" "" "" "" (head possibleRecipes)
-   possibleRecipes
-   controller
-   cancelcontroller
-
---- Supplies a WUI form to create a new RecipeDescription entity.
---- Takes default values to be prefilled in the form fields.
-createRecipeDescriptionView
-  :: UserSessionInfo
-  -> String
-  -> String
-  -> String
-  -> String
-  -> String
-  -> Recipe
-  -> [Recipe]
-  -> ((String,String,String,String,String,Recipe) -> Controller)
-  -> Controller -> [HtmlExp]
-createRecipeDescriptionView
-    _
-    defaultServings
-    defaultIngredients
-    defaultDirections
-    defaultPrepTime
-    defaultCookTime
-    defaultRecipe
-    possibleRecipes
-    controller
-    cancelcontroller =
-  renderWuiForm (wRecipeDescription possibleRecipes)
-   (defaultServings
-   ,defaultIngredients
-   ,defaultDirections
-   ,defaultPrepTime
-   ,defaultCookTime
-   ,defaultRecipe)
-   controller
-   cancelcontroller
-   "Create new RecipeDescription"
-   "create"
-
---- Supplies a WUI form to edit the given RecipeDescription entity.
---- Takes also associated entities and a list of possible associations
---- for every associated entity type.
-editRecipeDescriptionView
-  :: UserSessionInfo
-  -> RecipeDescription
-  -> Recipe
-  -> [Recipe] -> (RecipeDescription -> Controller) -> Controller -> [HtmlExp]
-editRecipeDescriptionView
-    _
-    recipeDescription
-    relatedRecipe
-    possibleRecipes
-    controller
-    cancelcontroller =
-  renderWuiForm
-   (wRecipeDescriptionType recipeDescription relatedRecipe possibleRecipes)
-   recipeDescription
-   controller
-   cancelcontroller
-   "Edit RecipeDescription"
-   "change"
-
+------------------------------------------------------------------------------
 --- Supplies a view to show the details of a RecipeDescription.
 showRecipeDescriptionView
   :: UserSessionInfo -> RecipeDescription -> Recipe -> [HtmlExp]

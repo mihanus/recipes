@@ -1,11 +1,11 @@
 module View.Keyword
-  ( wKeyword, tuple2Keyword, keyword2Tuple, wKeywordType, blankKeywordView
-  , createKeywordView, editKeywordView, showKeywordView, listKeywordView
+  ( wKeyword, tuple2Keyword, keyword2Tuple, wKeywordType
+  , showKeywordView, listKeywordView
   , keywordAlphabetView )
 where
 
-import WUI
 import HTML.Base
+import HTML.WUI
 import Time
 import Sort
 import HTML.Styles.Bootstrap3
@@ -33,34 +33,7 @@ wKeywordType :: Keyword -> WuiSpec Keyword
 wKeywordType keyword =
   transformWSpec (tuple2Keyword keyword,keyword2Tuple) wKeyword
 
---- Supplies a WUI form to create a new Keyword entity.
---- The fields of the entity have some default values.
-blankKeywordView
-  :: UserSessionInfo -> (String -> Controller) -> Controller -> [HtmlExp]
-blankKeywordView sinfo controller cancelcontroller =
-  createKeywordView sinfo "" controller cancelcontroller
-
---- Supplies a WUI form to create a new Keyword entity.
---- Takes default values to be prefilled in the form fields.
-createKeywordView
-  :: UserSessionInfo
-  -> String -> (String -> Controller) -> Controller -> [HtmlExp]
-createKeywordView _ defaultName controller cancelcontroller =
-  renderWuiForm wKeyword defaultName controller cancelcontroller
-   "Create new Keyword"
-   "create"
-
---- Supplies a WUI form to edit the given Keyword entity.
---- Takes also associated entities and a list of possible associations
---- for every associated entity type.
-editKeywordView
-  :: UserSessionInfo
-  -> Keyword -> (Keyword -> Controller) -> Controller -> [HtmlExp]
-editKeywordView _ keyword controller cancelcontroller =
-  renderWuiForm (wKeywordType keyword) keyword controller cancelcontroller
-   "Edit Keyword"
-   "change"
-
+------------------------------------------------------------------------------
 --- Supplies a view to show the details of a Keyword.
 showKeywordView :: UserSessionInfo -> Keyword -> [HtmlExp]
 showKeywordView _ keyword =

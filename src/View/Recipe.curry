@@ -1,18 +1,20 @@
 module View.Recipe
   ( keywords2string, string2keywords
-  , wRecipe, tuple2Recipe, recipe2Tuple, wRecipeType
-  , blankRecipeView, blankRecipeDescView, addRecipeView
-  , createRecipeView, editRecipeView, showRecipeView, listRecipeView
+  , wRecipe, tuple2Recipe, recipe2Tuple, wRecipeType, wRecipeDesc
+  , showRecipeView, listRecipeView
   , listRecipesOfKeyword, singleRecipeView, leqRecipe ) where
 
 import Char ( isSpace )
+import Global
 import List ( intersperse, isSuffixOf, last, split )
 import Sort
 import Time
 
-import WUI
+import Config.Storage
 import HTML.Base
 import HTML.Styles.Bootstrap3
+import HTML.Session
+import HTML.WUI
 import System.Authentication
 import System.Spicey
 import System.SessionInfo
@@ -108,87 +110,14 @@ wRecipeType recipe Nothing =
 wRecipeType recipe (Just recdesc) =
   transformWSpec (tuple2RecipeDesc recipe recdesc,recipeDesc2Tuple) wRecipeDesc
 
---- Supplies a WUI form to create a new Recipe entity.
---- The fields of the entity have some default values.
-blankRecipeView :: UserSessionInfo -> ((String,String,String) -> Controller)
-                -> Controller -> [HtmlExp]
-blankRecipeView _ controller cancelcontroller =
-  createRecipeView "" "" "Mehl, Butter,..." controller cancelcontroller
-
---- Supplies a WUI form to create a new Recipe entity.
---- Takes default values to be prefilled in the form fields.
-createRecipeView :: String -> String -> String
-                 -> ((String,String,String) -> Controller)
-                 -> Controller -> [HtmlExp]
-createRecipeView defaultName defaultReference defaultKeywords controller
-                 cancelcontroller =
-  renderWuiForm wRecipe
-   (defaultName,defaultReference,defaultKeywords)
-   controller
-   cancelcontroller
-   "Neue Rezeptreferenz"
-   "Speichern"
-
---- Supplies a WUI form to create a new Recipe entity with a description.
---- The fields of the entity have some default values.
-blankRecipeDescView :: UserSessionInfo ->
- ((String,String,String,String,String,String,String,String)
-  -> Controller) -> Controller -> [HtmlExp]
-blankRecipeDescView _ controller cancelcontroller =
-  createRecipeDescView "" "" "Mehl, Butter,..." "4" "" "" "" "" controller
-                       cancelcontroller
-
---- Supplies a WUI form to create a new Recipe entity with a description.
---- Takes default values to be prefilled in the form fields.
-createRecipeDescView
- :: String -> String -> String -> String -> String -> String -> String -> String
-  -> ((String,String,String,String,String,String,String,String) -> Controller)
-  -> Controller
-  -> [HtmlExp]
-createRecipeDescView defaultName defaultReference defaultKeywords
-  defaultServings defaultIngredients defaultDirections
-  defaultPrepTime defaultCookTime controller cancelcontroller =
-  renderWuiForm wRecipeDesc
-   (defaultName,defaultReference,defaultKeywords,
-    defaultServings,defaultIngredients,defaultDirections,
-    defaultPrepTime,defaultCookTime)
-   controller
-   cancelcontroller
-   "Neues Rezept"
-   "Speichern"
-
---- Supplies a WUI form to edit the given Recipe entity.
---- Takes also associated entities and a list of possible associations
---- for every associated entity type.
-editRecipeView :: UserSessionInfo -> (Recipe,String,Maybe RecipeDescription)
-        -> ((Recipe,String,Maybe RecipeDescription) -> Controller)
-        -> Controller -> [HtmlExp]
-editRecipeView _ (recipe,keywords,mbrecdesc) controller cancelcontroller =
-  renderWuiForm (wRecipeType recipe mbrecdesc)
-   (recipe,keywords,mbrecdesc)
-   controller
-   cancelcontroller
-   "Rezept ändern"
-   "Speichern"
-
+--------------------------------------------------------------------------
 --- Supplies a view to show the details of a Recipe.
 showRecipeView :: UserSessionInfo -> Recipe -> [Keyword] -> [HtmlExp]
 showRecipeView _ recipe keywords =
   recipeToDetailsView recipe keywords
    ++ [hrefButton "?Recipe/list" [htxt "back to Recipe list"]]
 
---- Supplies a view to add an existing Recipe.
-addRecipeView :: UserSessionInfo -> [Recipe] -> (Recipe -> Controller)
-              -> Controller -> [HtmlExp]
-addRecipeView _ recipes controller cancelcontroller =
-  renderWuiForm (wSelect recipeToShortView allrecipes)
-   (head allrecipes)
-   controller
-   cancelcontroller
-   "Rezept in Kategorie hinzufügen"
-   "hinzufügen"
- where allrecipes = sortBy leqRecipe recipes
-
+--------------------------------------------------------------------------
 --- Compares two Recipe entities. This order is used in the list view.
 leqRecipe :: Recipe -> Recipe -> Bool
 leqRecipe x1 x2 =
@@ -206,11 +135,8 @@ leqRecipeRef x1 x2 =
 --- and the controller functions to show, delete and edit entities.
 singleRecipeView :: UserSessionInfo -> [(Category,String)]
                  -> Recipe -> [Keyword] -> Maybe RecipeDescription
-                 -> ([String]-> Recipe -> Maybe RecipeDescription -> Controller)
-                 -> (Maybe Category -> Recipe -> Controller)
                  -> [HtmlExp]
-singleRecipeView sinfo parentcats recipe keywords mbrecdesc
-                 editRecipeController deleteRecipeController =
+singleRecipeView sinfo parentcats recipe keywords mbrecdesc =
   [h4 (concatMap
           (\ (n,(cat,a)) ->
             [hrefButton (showControllerURL "Category"
@@ -224,17 +150,20 @@ singleRecipeView sinfo parentcats recipe keywords mbrecdesc
   [par (showRecipeDescription mbrecdesc)] ++
   if isAdminSession sinfo
    then
-   [par [defaultButton "Ändern"
-           (nextController (editRecipeController (map snd parentcats)
-                                                 recipe mbrecdesc)),
-         defaultButton (maybe "Rezept" (const "in Kategorie") currentCat ++
-                        " löschen")
-                  (nextController (deleteRecipeController currentCat recipe))]]
+   [par [hrefButton (showControllerURL "Recipe"
+                       ("edit" : showRecipeKey recipe : map snd parentcats))
+                    [htxt "Ändern"], nbsp,
+         hrefButton (showControllerURL "Recipe"
+                       ("delete" : showRecipeKey recipe :
+                        maybe [] (\c -> [snd c]) currentCat))
+                    [htxt $ maybe "Rezept" (const "in Kategorie") currentCat ++
+                            " löschen"]
+        ]]
    else []
  where
    currentCat = if null parentcats
-                then Nothing
-                else Just (fst (last parentcats))
+                  then Nothing
+                  else Just (last parentcats)
 
 -- Shows the reference of a recipe. If it contains the substring "<....pdf>",
 -- it will be shown as a reference to the `recipes_archives` directory.

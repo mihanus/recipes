@@ -12,49 +12,65 @@
 module System.SessionInfo (
   UserSessionInfo(..), userLoginOfSession, setUserLoginOfSession, 
   getUserSessionInfo, updateUserSessionInfo
+ , getCurrentCats, storeCurrentCats
  ) where
 
-import FilePath ( (</>) )
-
 import Global
+import HTML.Session
 
-import Config.Globals ( spiceyDataDir )
-import System.Session
+import Config.Storage
 
 --------------------------------------------------------------------------
 --- The data associated to a user session.
---- It contains formation about the login status of a user.
+--- It contains the list of category keys of the current navigation
+--- and information about the login status of a user.
 --- The argument of the session data is `Nothing` if the user is not logged in.
 --- Otherwise, it is `Maybe ln` where `ln` is the login name of the user.
-data UserSessionInfo = SD (Maybe String)
+data UserSessionInfo = SD [String] (Maybe String)
 
 --- The initial (empty) session data
 emptySessionInfo :: UserSessionInfo
-emptySessionInfo = SD Nothing
+emptySessionInfo = SD [] Nothing
 
 --- Extracts the login status from the user session data.
 userLoginOfSession :: UserSessionInfo -> Maybe String
-userLoginOfSession (SD login) = login
+userLoginOfSession (SD _ login) = login
 
 --- Sets the login status of the user session data.
 setUserLoginOfSession :: Maybe String -> UserSessionInfo -> UserSessionInfo
-setUserLoginOfSession login (SD _) = SD login
+setUserLoginOfSession login (SD cks _) = SD cks login
+
+--- Extracts the login status from the user session data.
+userCatsOfSession :: UserSessionInfo -> [String]
+userCatsOfSession (SD cks _) = cks
+
+--- Sets the current category keys of the user session data.
+setUserCats :: [String] -> UserSessionInfo -> UserSessionInfo
+setUserCats catkeys (SD _ login) = SD catkeys login
 
 --------------------------------------------------------------------------
 --- Definition of the session state to store the login name (as a string).
 userSessionInfo :: Global (SessionStore UserSessionInfo)
 userSessionInfo =
-  global emptySessionStore (Persistent (spiceyDataDir </> "userSessionInfo"))
+  global emptySessionStore (Persistent (inDataDir "userSessionInfo"))
 
 --- Gets the data of the current user session.
 getUserSessionInfo :: IO UserSessionInfo
 getUserSessionInfo =
-  getSessionData userSessionInfo >>= return . maybe emptySessionInfo id
+  getSessionData userSessionInfo emptySessionInfo
 
 --- Updates the data of the current user session.
 updateUserSessionInfo :: (UserSessionInfo -> UserSessionInfo) -> IO ()
-updateUserSessionInfo upd = do
-  sd <- getUserSessionInfo
-  putSessionData (upd sd) userSessionInfo
+updateUserSessionInfo = updateSessionData userSessionInfo emptySessionInfo
+
+--------------------------------------------------------------------------
+
+--- Gets the current category navigation.
+getCurrentCats :: IO [String]
+getCurrentCats = getUserSessionInfo >>= return . userCatsOfSession
+
+--- Stores the current category navigation.
+storeCurrentCats :: [String] -> IO ()
+storeCurrentCats catkeys = updateUserSessionInfo (setUserCats catkeys)
 
 --------------------------------------------------------------------------

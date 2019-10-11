@@ -4,7 +4,7 @@
 {-# OPTIONS_CYMAKE -F --pgmF=currypp --optF=foreigncode #-}
 
 module Controller.Search
-  ( searchController )
+  ( searchController, searchForm )
  where
 
 import Char ( toLower )
@@ -19,14 +19,13 @@ import View.Search
 -----------------------------------------------------------------------------
 --- Controller for the main page.
 searchController :: Controller
-searchController = do
-  args <- getControllerParams
-  case args of
-    _ -> do sinfo <- getUserSessionInfo
-            return $ searchPageView sinfo searchRecipeNames
-                                          searchRecipeIngredients
+searchController = return [formExp searchForm]
 
---- Controller for searching in recipes.
+searchForm :: HtmlFormDef ()
+searchForm = HtmlFormDef "Controller.Search.searchForm" done
+  (\_ -> searchPageView searchRecipeNames searchRecipeIngredients)
+
+--- Controller for searching in recipe titles.
 searchRecipeNames :: String -> Controller
 searchRecipeNames searchstring = do
   sinfo <- getUserSessionInfo
@@ -38,7 +37,7 @@ searchRecipeNames searchstring = do
   return (listRecipeView sinfo ("Rezepte mit: " ++ searchstring) recipes)
 
 
---- Controller for searching in recipes.
+--- Controller for searching in recipe ingredientss.
 searchRecipeIngredients :: String -> Controller
 searchRecipeIngredients searchstring = do
   sinfo <- getUserSessionInfo

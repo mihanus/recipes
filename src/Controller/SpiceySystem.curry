@@ -6,14 +6,18 @@
 --------------------------------------------------------------------------
 
 module Controller.SpiceySystem
-  (loginController,processListController,historyController)
+  ( loginController, loginFormDef
+  , processListController, historyController
+  )
  where
 
+import Global
 import ReadNumeric
 
+import Config.Storage
 import Config.UserProcesses
 import System.Spicey
-import System.Session
+import HTML.Session
 import System.Processes
 import System.Authentication
 import View.SpiceySystem
@@ -24,7 +28,19 @@ import Controller.DefaultController
 loginController :: Controller
 loginController = do
   login <- getSessionLogin
-  return $ loginView defaultController login
+  putSessionData loginFormStore login
+  return [formExp loginFormDef]
+
+loginFormDef :: HtmlFormDef (Maybe String)
+loginFormDef =
+  HtmlFormDef "Controller.SpiceySystem.loginFormDef"
+    (getSessionData loginFormStore Nothing)
+    (loginView defaultController)
+
+--- The data processed by the login form.
+loginFormStore :: Global (SessionStore (Maybe String))
+loginFormStore =
+  global emptySessionStore (Persistent (inDataDir "loginFormStore"))
 
 -----------------------------------------------------------------------------
 --- Controller for showing and selecting user processes.

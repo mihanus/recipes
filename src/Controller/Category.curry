@@ -1,15 +1,21 @@
 module Controller.Category
-  ( mainCategoryController, listCategoryController )
+  ( mainCategoryController, newCategoryForm, editCategoryForm
+  , listCategoryController, listCategoryControllerWithArgs )
  where
 
+import Global
 import List(last)
-import System.Spicey
-import HTML.Base
 import Time
+
+import HTML.Base
+import HTML.Session
+import HTML.WUI
+
+import Config.Storage
+import System.Spicey
 import Recipes
 import View.Category
 import Maybe
-import Controller.Recipe
 import System.SessionInfo
 import System.Authorization
 import System.AuthorizedActions
@@ -24,31 +30,46 @@ mainCategoryController =
      case args of
        [] -> listCategoryController
        ("list":_) -> listCategoryController
-       ["new",s] ->
-         applyControllerOn (readCategoryKey s) (runJustT . getCategory)
-          newCategoryController
-       ["show",s] ->
-         applyControllerOn (readCategoryKey s) (runJustT . getCategory)
-          showCategoryController
-       ["edit",s] ->
-         applyControllerOn (readCategoryKey s) (runJustT . getCategory)
-          editCategoryController
-       ["delete",s] ->
-         applyControllerOn (readCategoryKey s) (runJustT . getCategory)
-          deleteCategoryController
+       ["new",s] -> applyCategoryControllerOn s newCategoryController
+       ["show",s] -> applyCategoryControllerOn s showCategoryController
+       ["edit",s] -> applyCategoryControllerOn s editCategoryController
+       ["delete",s] -> applyCategoryControllerOn s deleteCategoryController
+       ["destroy",s] -> applyCategoryControllerOn s destroyCategoryController
        _ -> displayError "Illegal URL"
 
---- Shows a form to create a new Category entity.
+--- Applies a category controller on the category specified by the
+--- key (first argument).
+applyCategoryControllerOn
+  :: String -> (Category -> Controller) -> Controller
+applyCategoryControllerOn s =
+  applyControllerOn (readCategoryKey s) (runJustT . getCategory)
+
+------------------------------------------------------------------------------
+--- The type of a new Category entity.
+type NewCategory = (String,Int)
+
+--- Shows a form to create a new Category entity inside the given category.
 newCategoryController :: Category -> Controller
 newCategoryController cat =
-  checkAuthorization (categoryOperationAllowed NewEntity)
-   $ (\sinfo ->
-     do return
-         (blankCategoryView sinfo
-           (\entity ->
-             transactionController (runT (createCategoryT cat entity))
-              (nextInProcessOr listCategoryController Nothing))
-           listCategoryController))
+  checkAuthorization (categoryOperationAllowed NewEntity) $ \_ -> do
+    setParWuiStore wuiNewCategoryStore cat ("",0)
+    return [formExp newCategoryForm]
+
+--- Supplies a WUI form to create a new Category entity.
+--- The fields of the entity have some default values.
+newCategoryForm :: HtmlFormDef (Category, WuiStore NewCategory)
+newCategoryForm =
+  pwui2FormDef "Controller.Category.newCategoryForm"
+    wuiNewCategoryStore
+    (\_ -> wCategory)
+    (\cat entity -> transactionController (runT (createCategoryT cat entity))
+                      (nextInProcessOr listCategoryController Nothing))
+    (renderWuiExp "Neue Kategorie" "Speichern" listCategoryController)
+
+---- The data stored for executing the WUI form.
+wuiNewCategoryStore :: Global (SessionStore (Category, WuiStore NewCategory))
+wuiNewCategoryStore =
+  global emptySessionStore (Persistent (inDataDir "wuiNewCategoryStore"))
 
 --- Transaction to persist a new Category entity to the database.
 createCategoryT :: Category -> (String,Int) -> DBAction ()
@@ -57,32 +78,48 @@ createCategoryT cat (name,position) =
    (Just (categoryKey cat))
    >+= (\_ -> return ())
 
+------------------------------------------------------------------------------
 --- Shows a form to edit the given Category entity.
 editCategoryController :: Category -> Controller
 editCategoryController categoryToEdit =
   checkAuthorization (categoryOperationAllowed (UpdateEntity categoryToEdit))
-   $ (\sinfo ->
-     do return
-         (editCategoryView sinfo categoryToEdit
-           (\entity ->
-             transactionController (runT (updateCategory entity))
-              (nextInProcessOr listCategoryController Nothing))
-           listCategoryController))
+   $ \_ -> do
+      setParWuiStore wuiEditCategoryStore categoryToEdit categoryToEdit
+      return [formExp editCategoryForm]
 
+--- Supplies a WUI form to edit a given Category entity.
+--- The fields of the entity have some default values.
+editCategoryForm :: HtmlFormDef (Category, WuiStore Category)
+editCategoryForm =
+  pwui2FormDef "Controller.Category.editCategoryForm"
+    wuiEditCategoryStore
+    (\cat -> wCategoryType cat)
+    (\cat entity ->
+       checkAuthorization (categoryOperationAllowed (UpdateEntity cat)) $ \_ ->
+         transactionController (runT (updateCategory entity))
+           (nextInProcessOr listCategoryController Nothing))
+    (renderWuiExp "Kategorie ändern" "Speichern" listCategoryController)
+
+---- The data stored for executing the WUI form.
+wuiEditCategoryStore :: Global (SessionStore (Category, WuiStore Category))
+wuiEditCategoryStore =
+  global emptySessionStore (Persistent (inDataDir "wuiEditCategoryStore"))
+
+------------------------------------------------------------------------------
 --- Deletes a given Category entity (after asking for confirmation)
 --- and proceeds with the list controller.
 deleteCategoryController :: Category -> Controller
 deleteCategoryController category =
-  checkAuthorization (categoryOperationAllowed (DeleteEntity category))
-   $ (\_ ->
-     confirmController
-      [h3
-        [htxt
-          (concat
-            ["Really delete entity \"",categoryToShortView category,"\"?"])]]
-      (transactionController (runT (deleteCategoryT category))
-        listCategoryController)
-      (showCategoryController category))
+  checkAuthorization (categoryOperationAllowed (DeleteEntity category)) $ \_ ->
+    confirmDeletionPage
+      (concat ["Really delete entity \"",categoryToShortView category,"\"?"])
+
+--- Deletes a given Category entity.
+destroyCategoryController :: Category -> Controller
+destroyCategoryController category =
+  checkAuthorization (categoryOperationAllowed (DeleteEntity category)) $ \_ ->
+    transactionController (runT (deleteCategoryT category))
+                          (listCategoryControllerWithArgs [])
 
 --- Transaction to delete a given Category entity.
 deleteCategoryT :: Category -> DBAction ()
@@ -92,34 +129,34 @@ deleteCategoryT category =
       removeRecipeCategory oldRecipeCategoryRecipes category))
    >+ deleteCategory category
 
+--- Lists Category entities in a given category navigation.
 --- Lists all Category entities with buttons to show, delete,
 --- or edit an entity.
 listCategoryController :: Controller
-listCategoryController =
-  checkAuthorization (categoryOperationAllowed ListEntities)
-   $ (\sinfo ->
-    do givenargs <- getControllerParams
-       args <- if length givenargs <= 1
-               then do rc <- runQ queryRootCategory
-                       return ([showCategoryKey rc])
-               else return (tail givenargs) -- first arg = "list"
-       ckey <- maybe (runQ queryRootCategory >>= return . categoryKey)
-                     return
-                     (readCategoryKey (last args))
-       currentcat <- runJustT (getCategory ckey)
-       categorys <- runQ $ queryCategoryContent ckey
-       recipes  <- runJustT $ getRecipesInCategory ckey
-       parentcatnames <- runJustT $ mapM stringcatkey2catname args
-       saveCurrentCategory (categoryName currentcat)
-       return
-        (listCategoryView sinfo
-          (zip parentcatnames args) (categoryName currentcat)
-          categorys recipes showCategoryController
-          editCategoryController deleteCategoryController
-          (newCategoryController currentcat)
-          (newRecipeDescController currentcat)
-          (newRecipeController currentcat)
-          (addRecipeController currentcat)))
+listCategoryController = do
+  givenargs <- getControllerParams
+  listCategoryControllerWithArgs givenargs
+
+--- Lists all Category entities with buttons to show, delete,
+--- or edit an entity.
+listCategoryControllerWithArgs :: [String] -> Controller
+listCategoryControllerWithArgs givenargs =
+  checkAuthorization (categoryOperationAllowed ListEntities) $ \sinfo -> do
+    args <- if length givenargs <= 1
+            then do rc <- runQ queryRootCategory
+                    return ([showCategoryKey rc])
+            else return (tail givenargs) -- first arg = "list"
+    ckey <- maybe (runQ queryRootCategory >>= return . categoryKey)
+                  return
+                  (readCategoryKey (last args))
+    currentcat <- runJustT (getCategory ckey)
+    categorys <- runQ $ queryCategoryContent ckey
+    recipes  <- runJustT $ getRecipesInCategory ckey
+    parentcatnames <- runJustT $ mapM stringcatkey2catname args
+    storeCurrentCats args
+    return$ listCategoryView sinfo
+              (zip parentcatnames args) currentcat
+              categorys recipes
  where
   stringcatkey2catname s =
     maybe (return "")

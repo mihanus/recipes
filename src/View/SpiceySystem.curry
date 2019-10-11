@@ -9,6 +9,10 @@ module View.SpiceySystem
   ( loginView, processListView, historyView )
  where
 
+import Global
+
+import Config.Storage
+import HTML.Session
 import HTML.Styles.Bootstrap3 (defaultButton, primButton)
 import Config.Globals
 import Config.UserProcesses
@@ -18,6 +22,8 @@ import System.Authentication
 
 -----------------------------------------------------------------------------
 --- View for login/logout. If the passed login name is the empty string,
+--- we offer a login dialog, otherwise a logout dialog.
+--- If the passed login name is the empty string,
 --- we offer a login dialog, otherwise a logout dialog.
 loginView :: Controller -> Maybe String -> [HtmlExp]
 loginView controller currlogin =
@@ -30,7 +36,7 @@ loginView controller currlogin =
                defaultButton "abbrechen" (logoutHandler False)]
  where
   passwdfield free
-
+  
   loginHandler env = do
     let loginname = defaultLoginName
         passwd = env passwdfield
@@ -42,12 +48,12 @@ loginView controller currlogin =
                 then do loginToSession loginname
                         setPageMessage ("Angemeldet als: "++loginname)
                 else setPageMessage "Login failed: wrong password"
-    nextInProcessOr controller Nothing >>= getForm
-
+    nextInProcessOr controller Nothing >>= getPage
+  
   logoutHandler confirm _ = do
     if confirm then logoutFromSession >> setPageMessage "Abgemeldet"
                else done
-    nextInProcessOr controller Nothing >>= getForm
+    nextInProcessOr controller Nothing >>= getPage
 
 -----------------------------------------------------------------------------
 --- A view for all processes contained in a given process specification.
