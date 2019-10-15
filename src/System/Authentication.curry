@@ -14,7 +14,7 @@ module System.Authentication (
 
 import Config.Globals
 import System.SessionInfo
-import System.Crypto
+import Crypto.Hash
 
 --------------------------------------------------------------------------
 -- Operations for hashing.
