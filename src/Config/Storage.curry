@@ -12,3 +12,11 @@ import Config.Globals
 --- is stored during run-time.
 inDataDir :: String -> String
 inDataDir filename = spiceyDataDir </> filename
+
+-- Directory where recipe pictures are stored.
+pictureDir :: String
+pictureDir = "../recipe/pictures"
+
+-- Directory where recipe pictures are stored.
+pdfDir :: String
+pdfDir = "../recipe/pdfs"

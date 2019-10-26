@@ -8,7 +8,9 @@ module Controller.Search
  where
 
 import Char ( toLower )
+
 import Database.CDBI.ER 
+import HTML.Base
 
 import Recipes
 import System.SessionInfo
@@ -22,7 +24,7 @@ searchController :: Controller
 searchController = return [formExp searchForm]
 
 searchForm :: HtmlFormDef ()
-searchForm = HtmlFormDef "Controller.Search.searchForm" done
+searchForm = formDefWithID "Controller.Search.searchForm" done
   (\_ -> searchPageView searchRecipeNames searchRecipeIngredients)
 
 --- Controller for searching in recipe titles.

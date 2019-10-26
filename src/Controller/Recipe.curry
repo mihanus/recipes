@@ -3,14 +3,17 @@ module Controller.Recipe
   , createRecipeForm, createRecipeDescForm, editRecipeForm, addRecipeForm
   ) where
 
+import Directory ( doesFileExist, renameFile )
+import FilePath  ( (</>) )
 import Global
-import List  ( delete, intersect, intersperse )
+import List      ( delete, intersect, intersperse )
 import Maybe
-import Sort  ( sortBy )
+import Sort      ( sortBy )
+import System    ( system )
 import Time
 
+import Config.EntityRoutes
 import Config.Storage
-import Controller.DefaultController
 import HTML.Base
 import HTML.Session
 import HTML.WUI
@@ -21,8 +24,9 @@ import System.Spicey
 import System.SessionInfo
 import System.Authorization
 import System.AuthorizedActions
+import System.Helpers
 import Config.UserProcesses
-import View.RecipesEntitiesToHtml
+import View.EntitiesToHtml
 import Database.CDBI.Connection
 
 --- Choose the controller for a Recipe entity according to the URL parameter.
@@ -35,19 +39,19 @@ mainRecipeController = do
     ["add",catkey] -> addRecipeController catkey
     ["new",catkey] -> newRecipeDescController catkey
     ["newref",catkey] -> newRecipeController catkey
-    ("show":s:ckeys) -> applyRecipeControllerOn s (showRecipeController ckeys)
-    ("edit":s:ckeys) -> applyRecipeControllerOn s (editRecipeController ckeys)
-    ["delete",s] -> applyRecipeControllerOn s (deleteRecipeController Nothing)
+    ("show":s:ckeys) -> controllerOnKey s (showRecipeController ckeys)
+    ("edit":s:ckeys) -> controllerOnKey s (editRecipeController ckeys)
+    ["delete",s] -> controllerOnKey s (deleteRecipeController Nothing)
     ["delete",s,ckey] ->
-       applyRecipeControllerOn s (deleteRecipeController (Just ckey))
-    ["destroy",s] -> applyRecipeControllerOn s (destroyRecipeController Nothing)
+       controllerOnKey s (deleteRecipeController (Just ckey))
+    ["destroy",s] -> controllerOnKey s (destroyRecipeController Nothing)
     ["destroy",s,ckey] ->
-       applyRecipeControllerOn s (destroyRecipeController (Just ckey))
+       controllerOnKey s (destroyRecipeController (Just ckey))
+    ["uploadpic",s]   -> controllerOnKey s uploadPictureRecipeController
+    ["uploadedpic",s] -> controllerOnKey s checkUploadPictureRecipeController
+    ["uploadpdf",s]   -> controllerOnKey s uploadPDFRecipeController
+    ["uploadedpdf",s] -> controllerOnKey s checkUploadPDFRecipeController
     _ -> displayUrlError
-
-applyRecipeControllerOn :: String -> (Recipe -> Controller) -> Controller
-applyRecipeControllerOn s =
-  applyControllerOn (readRecipeKey s) (runJustT . getRecipe)
 
 --------------------------------------------------------------------------
 --- Shows a form to edit the given Category entity.
@@ -56,30 +60,31 @@ addRecipeController catkey =
   checkAuthorization (recipeOperationAllowed NewEntity) $ \_ -> do
     cat <- runJustT $ stringcatkey2cat catkey
     allRecipes <- runQ queryAllRecipes >>= return . sortBy leqRecipe
-    setParWuiStore wuiAddRecipeStore (cat, allRecipes) (head allRecipes)
+    listurl <- getCurrentCatsURL
+    setParWuiStore addRecipeStore (cat, allRecipes, listurl) (head allRecipes)
     return [formExp addRecipeForm]
 
 --- Supplies a WUI form to edit a given Category entity.
 --- The fields of the entity have some default values.
-addRecipeForm :: HtmlFormDef ((Category,[Recipe]), WuiStore Recipe)
+addRecipeForm :: HtmlFormDef ((Category,[Recipe],String), WuiStore Recipe)
 addRecipeForm =
   pwui2FormDef "Controller.Recipe.addRecipeForm"
-    wuiAddRecipeStore
-    (\ (_,allrecipes) -> wSelect recipeToShortView allrecipes)
-    (\ (cat,_) entity ->
+    addRecipeStore
+    (\ (_,allrecipes,_) -> wSelect recipeToShortView allrecipes)
+    (\ (cat,_,listurl) entity ->
        checkAuthorization (recipeOperationAllowed NewEntity) $ \_ ->
          transactionController (runT (addGivenRecipeT cat entity))
-           (nextInProcessOr defaultController Nothing))
-    (renderWuiExp "Rezept in Kategorie hinzufügen" "Hinzufügen"
-                  defaultController)
+           (nextInProcessOr (redirectController listurl) Nothing))
+    (\ (_,_,listurl) ->
+         renderWUI "Rezept in Kategorie hinzufügen" "Hinzufügen" listurl ())
  where
   addGivenRecipeT cat rec = newRecipeCategory (categoryKey cat) (recipeKey rec)
 
 ---- The data stored for executing the WUI form.
-wuiAddRecipeStore ::
-  Global (SessionStore ((Category,[Recipe]), WuiStore Recipe))
-wuiAddRecipeStore =
-  global emptySessionStore (Persistent (inDataDir "wuiAddRecipeStore"))
+addRecipeStore ::
+  Global (SessionStore ((Category,[Recipe],String), WuiStore Recipe))
+addRecipeStore =
+  global emptySessionStore (Persistent (inDataDir "addRecipeStore"))
 
 ------------------------------------------------------------------------------
 --- Shows a form to create a new Recipe entity in a category.
@@ -88,7 +93,8 @@ newRecipeController catkey =
   checkAuthorization (recipeOperationAllowed NewEntity)
    $ \sinfo -> do
     cat <- runJustT $ stringcatkey2cat catkey
-    setParWuiStore wuiCreateRecipeStore (sinfo,cat) ("","","")
+    listurl <- getCurrentCatsURL
+    setParWuiStore createRecipeStore (sinfo,cat,listurl) ("","","")
     return [par [htxt explainPDF], formExp createRecipeForm]
 
 explainPDF :: String
@@ -103,21 +109,22 @@ type NewRecipe = (String,String,String)
 
 --- The form definition to create a new Recipe entity
 --- containing the controller to insert a new Recipe entity.
-createRecipeForm :: HtmlFormDef ((UserSessionInfo,Category), WuiStore NewRecipe)
+createRecipeForm ::
+  HtmlFormDef ((UserSessionInfo,Category,String), WuiStore NewRecipe)
 createRecipeForm = pwui2FormDef "Controller.Recipe.createRecipeForm"
-  wuiCreateRecipeStore
+  createRecipeStore
     (\_ -> wRecipe)
-    (\ (_,cat) entity ->
+    (\ (_,cat,listurl) entity ->
        checkAuthorization (recipeOperationAllowed NewEntity) $ \_ ->
           transactionController (runT (createRecipeT cat entity))
-             (nextInProcessOr defaultController Nothing))
-    (renderWuiExp "Neue Rezeptreferenz" "Speichern" defaultController)
+             (nextInProcessOr (redirectController listurl) Nothing))
+    (\ (_,_,listurl) -> renderWUI "Neue Rezeptreferenz" "Speichern" listurl ())
 
 ---- The data stored for executing the WUI form.
-wuiCreateRecipeStore ::
-  Global (SessionStore ((UserSessionInfo,Category), WuiStore NewRecipe))
-wuiCreateRecipeStore =
-  global emptySessionStore (Persistent (inDataDir "wuiCreateRecipeStore"))
+createRecipeStore ::
+  Global (SessionStore ((UserSessionInfo,Category,String), WuiStore NewRecipe))
+createRecipeStore =
+  global emptySessionStore (Persistent (inDataDir "createRecipeStore"))
 
 --- Transaction to persist a new Recipe entity to the database.
 createRecipeT :: Category -> NewRecipe -> DBAction ()
@@ -134,8 +141,9 @@ newRecipeDescController catkey =
   checkAuthorization (recipeOperationAllowed NewEntity)
    $ \sinfo -> do
     cat <- runJustT $ stringcatkey2cat catkey
-    setParWuiStore wuiCreateRecipeDescStore
-                   (sinfo,cat) ("","","","","","","","")
+    listurl <- getCurrentCatsURL
+    setParWuiStore createRecipeDescStore
+                   (sinfo,cat,listurl) ("","","","","","","","")
     return [par [htxt explainPDF], formExp createRecipeDescForm]
 
 type NewRecipeDesc = (String,String,String,String,String,String,String,String)
@@ -143,21 +151,22 @@ type NewRecipeDesc = (String,String,String,String,String,String,String,String)
 --- The form definition to create a new Recipe entity
 --- containing the controller to insert a new Recipe entity.
 createRecipeDescForm ::
-  HtmlFormDef ((UserSessionInfo,Category), WuiStore NewRecipeDesc)
+  HtmlFormDef ((UserSessionInfo,Category,String), WuiStore NewRecipeDesc)
 createRecipeDescForm = pwui2FormDef "Controller.Recipe.createRecipeDescForm"
-  wuiCreateRecipeDescStore
+  createRecipeDescStore
   (\_ -> wRecipeDesc)
-  (\ (_,cat) entity ->
+  (\ (_,cat,listurl) entity ->
      checkAuthorization (recipeOperationAllowed NewEntity) $ \_ ->
        transactionController (runT (createRecipeDescT cat entity))
-         (nextInProcessOr defaultController Nothing))
-    (renderWuiExp "Neues Rezept" "Speichern" defaultController)
+         (nextInProcessOr (redirectController listurl) Nothing))
+    (\ (_,_,listurl) -> renderWUI "Neues Rezept" "Speichern" listurl ())
 
 ---- The data stored for executing the WUI form.
-wuiCreateRecipeDescStore ::
-  Global (SessionStore ((UserSessionInfo,Category), WuiStore NewRecipeDesc))
-wuiCreateRecipeDescStore =
-  global emptySessionStore (Persistent (inDataDir "wuiCreateRecipeDescStore"))
+createRecipeDescStore ::
+  Global (SessionStore ((UserSessionInfo,Category,String),
+                        WuiStore NewRecipeDesc))
+createRecipeDescStore =
+  global emptySessionStore (Persistent (inDataDir "createRecipeDescStore"))
 
 --- Transaction to persist a new Recipe entity to the database.
 createRecipeDescT :: Category -> NewRecipeDesc -> DBAction ()
@@ -188,34 +197,35 @@ editRecipeController parentcatkeys recipe =
    $ \sinfo -> do
     mbrecdesc <- runQ $ queryDescriptionOfRecipe (recipeKey recipe)
     recipekeywords <- runJustT (getRecipeKeywords recipe)
-    setParWuiStore wuiEditRecipeStore
-      (sinfo, recipe, mbrecdesc, parentcatkeys)
+    listurl <- getCurrentCatsURL
+    setParWuiStore editRecipeStore
+      (sinfo, recipe, mbrecdesc, parentcatkeys, listurl)
       (recipe, keywords2string recipekeywords, mbrecdesc)
     return [formExp editRecipeForm]
 
 --- The form definition to edit an existing Person entity
 --- containing the controller to update the entity.
 editRecipeForm ::
-  HtmlFormDef ((UserSessionInfo,Recipe,Maybe RecipeDescription,[String]),
+  HtmlFormDef ((UserSessionInfo,Recipe,Maybe RecipeDescription,[String],String),
                WuiStore (Recipe,String,Maybe RecipeDescription))
 editRecipeForm = pwui2FormDef "Controller.Recipe.editRecipeForm"
-    wuiEditRecipeStore
-    (\ (_,recipe,mbrecdesc,_) -> wRecipeType recipe mbrecdesc)
-    (\ (_,_,_,parentcatkeys) entity@(recipe,_,_) ->
+    editRecipeStore
+    (\ (_,recipe,mbrecdesc,_,_) -> wRecipeType recipe mbrecdesc)
+    (\ (_,_,_,parentcatkeys,_) entity@(recipe,_,_) ->
      checkAuthorization (recipeOperationAllowed (UpdateEntity recipe)) $ \_ ->
      transactionController (runT (updateRecipeT entity))
        (nextInProcessOr
          (runJustT (getRecipe (recipeKey recipe)) >>=
           showRecipeController parentcatkeys) Nothing))
-    (renderWuiExp "Rezept ändern" "Speichern" defaultController)
+    (\ (_,_,_,_,listurl) -> renderWUI "Rezept ändern" "Speichern" listurl ())
 
 --- The data stored for executing the WUI form.
-wuiEditRecipeStore ::
+editRecipeStore ::
   Global (SessionStore ((UserSessionInfo,
-                         Recipe,Maybe RecipeDescription,[String]),
+                         Recipe,Maybe RecipeDescription,[String],String),
                         WuiStore (Recipe,String,Maybe RecipeDescription)))
-wuiEditRecipeStore =
-  global emptySessionStore (Persistent (inDataDir "wuiEditRecipeStore"))
+editRecipeStore =
+  global emptySessionStore (Persistent (inDataDir "editRecipeStore"))
 
 --- Transaction to persist modifications of a given Recipe entity
 --- to the database.
@@ -251,10 +261,11 @@ deleteRecipeController mbcatkey recipe =
 --- If a category is given, it is only deleted from this category,
 --- otherwise it will be complete deleted.
 destroyRecipeController :: Maybe String -> Recipe -> Controller
-destroyRecipeController mbcatkey recipe =
+destroyRecipeController mbcatkey recipe = do
+  listurl <- getCurrentCatsURL
   checkAuthorization (recipeOperationAllowed (DeleteEntity recipe)) $ \_ -> do
     transactionController (runT (deleteRecipeT mbcatkey recipe))
-                          defaultController
+                          (redirectController listurl)
 
 --- Transaction to delete a given Recipe entity.
 --- If a category is given, it is only deleted from this category,
@@ -270,6 +281,68 @@ deleteRecipeT (Just catkey) recipe = do
   cat <- stringcatkey2cat catkey
   deleteRecipeCategory (categoryKey cat) (recipeKey recipe)
 
+------------------------------------------------------------------------------
+--- A controller to upload a picture for a given Recipe entity.
+uploadPictureRecipeController :: Recipe -> Controller
+uploadPictureRecipeController recipe =
+  checkAuthorization (recipeOperationAllowed (UpdateEntity recipe)) $ \_ ->
+  return
+    [h3 [htxt "Bild für dieses Rezept hochladen"],
+     uploadForm ".jpg,.JPG,.JPEG,.jpeg" (rkey ++ ".jpg")
+                ("spicey.cgi?Recipe/uploadedpic/" ++ rkey)]
+ where
+  rkey = showRecipeKey recipe
+
+--- A controller to check and process and uploaded picture file.
+checkUploadPictureRecipeController :: Recipe -> Controller
+checkUploadPictureRecipeController recipe =
+  checkAuthorization (recipeOperationAllowed (UpdateEntity recipe)) $ \_ -> do
+    expic <- doesFileExist uplpicfile
+    isjpg <- isJpegFile uplpicfile
+    if expic && isjpg
+      then do
+        system $ "chmod 644 " ++ uplpicfile
+        renameFile uplpicfile (pictureDir </> picfile)
+        setPageMessage $ "Neues Bild zum Rezept '" ++ recipeName recipe ++
+                         "' hinzugefügt"
+      else setPageMessage $ if expic then "Nichts hochgeaden: kein JPEG!"
+                                     else "Nichts hochgeladen"
+    getCurrentCatsURL >>= redirectController
+ where
+  picfile    = showRecipeKey recipe ++ ".jpg"
+  uplpicfile = "uploads" </> picfile
+
+--------------------------------------------------------------------------
+--- A controller to upload a PDF for a given Recipe entity.
+uploadPDFRecipeController :: Recipe -> Controller
+uploadPDFRecipeController recipe =
+  checkAuthorization (recipeOperationAllowed (UpdateEntity recipe)) $ \_ ->
+  return
+    [h3 [htxt "PDF für dieses Rezept hochladen"],
+     uploadForm ".pdf" (rkey ++ ".pdf")
+                ("spicey.cgi?Recipe/uploadedpdf/" ++ rkey)]
+ where
+  rkey = showRecipeKey recipe
+
+--- A controller to check and process and uploaded picture file.
+checkUploadPDFRecipeController :: Recipe -> Controller
+checkUploadPDFRecipeController recipe =
+  checkAuthorization (recipeOperationAllowed (UpdateEntity recipe)) $ \_ -> do
+    expdf <- doesFileExist uplpdffile
+    ispdf <- isPdfFile uplpdffile
+    if expdf && ispdf
+      then do
+        system $ "chmod 644 " ++ uplpdffile
+        renameFile uplpdffile (pdfDir </> pdffile)
+        setPageMessage $ "Neues PDF zum Rezept '" ++ recipeName recipe ++
+                         "' hinzugefügt"
+      else setPageMessage $ if expdf then "Nichts hochgeladen: kein PDF"
+                                     else "Nichts hochgeladen"
+    getCurrentCatsURL >>= redirectController
+ where
+  pdffile    = showRecipeKey recipe ++ ".pdf"
+  uplpdffile = "uploads" </> pdffile
+
 --------------------------------------------------------------------------
 --- Lists all Recipe entities with buttons to show, delete,
 --- or edit an entity.
@@ -283,13 +356,18 @@ listRecipeController =
 --- Shows a Recipe entity.
 showRecipeController :: [String] -> Recipe -> Controller
 showRecipeController ckeys recipe =
-  checkAuthorization (recipeOperationAllowed (ShowEntity recipe))
-   $ \sinfo ->
-    do keywords <- runJustT (getRecipeKeywords recipe)
-       recdesc <- runQ $ queryDescriptionOfRecipe (recipeKey recipe)
-       parentcats <- runJustT $ mapM stringcatkey2cat ckeys
-       return (singleRecipeView sinfo (zip parentcats ckeys)
-                                recipe keywords recdesc)
+  checkAuthorization (recipeOperationAllowed (ShowEntity recipe)) $ \sinfo -> do
+    keywords <- runJustT (getRecipeKeywords recipe)
+    recdesc <- runQ $ queryDescriptionOfRecipe (recipeKey recipe)
+    parentcats <- runJustT $ mapM stringcatkey2cat ckeys
+    let picfile = pictureDir </> showRecipeKey recipe ++ ".jpg"
+    expic <- doesFileExist picfile
+    let pdffile = pdfDir </> showRecipeKey recipe ++ ".pdf"
+    expdf <- doesFileExist pdffile
+    return $ singleRecipeView sinfo (zip parentcats ckeys) recipe keywords
+               recdesc
+               (if expic then Just picfile else Nothing)
+               (if expdf then Just pdffile else Nothing)
 
 --- Gets the category corresponding to a given category key string.
 stringcatkey2cat :: String -> DBAction Category

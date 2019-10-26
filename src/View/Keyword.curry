@@ -9,10 +9,11 @@ import HTML.WUI
 import Time
 import Sort
 import HTML.Styles.Bootstrap3
-import System.Spicey
-import System.SessionInfo
 import Recipes
-import View.RecipesEntitiesToHtml
+import Config.EntityRoutes
+import System.SessionInfo
+import System.Spicey
+import View.EntitiesToHtml
 
 --- The WUI specification for the entity type Keyword.
 wKeyword :: WuiSpec String

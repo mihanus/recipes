@@ -4,17 +4,16 @@
 --------------------------------------------------------------------------
 
 module System.Spicey (
-  module System, 
-  module HTML.Base, 
-  module ReadNumeric, 
-  Controller, applyControllerOn,
+  Controller, EntityController(..), showRoute, editRoute, deleteRoute,
+  applyControllerOn,
+  redirectController,
   nextController, nextControllerForData,
   confirmDeletionPage,
   transactionController,
   getControllerURL,getControllerParams, showControllerURL,
   getPage, wDateType, wBoolean, wUncheckMaybe, wFloat,
   displayError, displayUrlError, cancelOperation,
-  renderWuiExp, renderLabels,
+  renderWUI, renderLabels,
   nextInProcessOr,
   stringToHtml, maybeStringToHtml,
   intToHtml,maybeIntToHtml, floatToHtml, maybeFloatToHtml,
@@ -22,15 +21,12 @@ module System.Spicey (
   userDefinedToHtml, maybeUserDefinedToHtml,
   spTable,
   setPageMessage, getPageMessage,
-  saveCurrentCategory,
-  saveLastUrl, getLastUrl, getLastUrls
+  saveLastUrl, getLastUrl, getLastUrls, getCurrentCatsURL
   ) where
 
 import Char         ( isSpace, isDigit )
 import Global
-import ReadNumeric
 import ReadShowTerm ( readsQTerm )
-import System
 import Time
 
 import Database.CDBI.Connection ( SQLResult )
@@ -61,12 +57,41 @@ type ViewBlock = [HtmlExp]
 --- Spicey.getControllerParams inside the controller.
 type Controller = IO ViewBlock
 
+
+--- The type class `EntityController` contains:
+--- * the application of a controller to some entity identified by a key string
+--- * an operation to construct a URL route for an entity w.r.t. to a route
+---   string
+class EntityController a where
+  controllerOnKey :: String -> (a -> Controller) -> Controller
+
+  entityRoute :: String -> a -> String
+
+
+--- Returns the URL route to show a given entity.
+showRoute :: EntityController a => a -> String
+showRoute = entityRoute "show"
+
+--- Returns the URL route to edit a given entity.
+editRoute :: EntityController a => a -> String
+editRoute = entityRoute "edit"
+
+--- Returns the URL route to delete a given entity.
+deleteRoute :: EntityController a => a -> String
+deleteRoute = entityRoute "delete"
+
+
 --- Reads an entity for a given key and applies a controller to it.
 applyControllerOn :: Maybe enkey -> (enkey -> IO en)
                   -> (en -> Controller) -> Controller
 applyControllerOn Nothing _ _ = displayUrlError
 applyControllerOn (Just userkey) getuser usercontroller =
   getuser userkey >>= usercontroller
+
+--- A controller to redirect to an URL starting with "?"
+--- (see implementation of `getPage`).
+redirectController :: String -> Controller
+redirectController url = return [HtmlText url]
 
 nextController :: Controller -> _ -> IO HtmlPage
 nextController controller _ = do
@@ -90,12 +115,13 @@ nextControllerForData controller param = do
 confirmDeletionPage :: String -> Controller
 confirmDeletionPage question = do
   (entity,ctrlargs) <- getControllerURL
+  listurl           <- getCurrentCatsURL
   case ctrlargs of
     (_:args) -> return $
       [h3 [htxt question],
        par [hrefButton (showControllerURL entity ("destroy":args)) [htxt "Yes"],
             nbsp,
-            hrefButton (showControllerURL entity ("show" : args)) [htxt "No"]]]
+            hrefButton listurl [htxt "No"]]]
     _ -> displayUrlError
 
 
@@ -160,18 +186,18 @@ showControllerURL ctrlurl params = '?' : ctrlurl ++ concatMap ('/':) params
 --- Standard rendering for WUI forms to edit data.
 --- @param title      - the title of the WUI form
 --- @param buttontag  - the text on the submit button
---- @param cancelctrl - the controller called if submission is cancelled
+--- @param cancelurl  - the URL selected if submission is cancelled
 --- @param envpar     - environment parameters (e.g., user session data)
 --- @param hexp       - the HTML expression representing the WUI form
 --- @param handler    - the handler for submitting data
-renderWuiExp :: String -> String -> Controller
-             -> a -> HtmlExp -> (CgiEnv -> Controller) -> [HtmlExp]
-renderWuiExp title buttontag cancelctrl _ hexp handler =
+renderWUI :: String -> String -> String
+          -> a -> HtmlExp -> (CgiEnv -> Controller) -> [HtmlExp]
+renderWUI title buttontag cancelurl _ hexp handler =
   [h1 [htxt title],
    hexp,
    breakline,
    primButton buttontag (\env -> handler env >>= getPage),
-   defaultButton "Abbrechen" (nextController (cancelOperation >> cancelctrl))]
+   hrefButton cancelurl [htxt "Abbrechen"]]
 
 
 --- A WUI for manipulating CalendarTime entities.
@@ -245,30 +271,28 @@ spiceyFooter =
         htxt "Framework"]]
         
 --- Transforms a view into an HTML form by adding the basic page layout.
+--- If the view is an empty text or a text starting with "?",
+--- generates a redirection page.
 getPage :: ViewBlock -> IO HtmlPage
 getPage viewblock = case viewblock of
-  [HtmlText ""] ->
-       return $ HtmlPage "forward to Spicey"
-                  [pageMetaInfo [("http-equiv","refresh"),
-                                 ("content","1; url=spicey.cgi")]]
-                  [par [htxt "You will be forwarded..."]]
+  [HtmlText ""]          -> return $ redirectPage "spicey.cgi"
+  [HtmlText ('?':route)] -> return $ redirectPage ('?':route)
   _ -> do
     cats      <- getCurrentCats
+    listurl   <- getCurrentCatsURL
     routemenu <- getRouteMenu
     msg       <- getPageMessage
     login     <- getSessionLogin
     lasturl   <- getLastUrl
-    cookie    <- sessionCookie
-    return (bootstrapPage "." ["bootstrap.min","spicey"] spiceyTitle
-               spiceyHomeBrand routemenu (rightTopMenu login)
-               0 []  [h1 [htxt spiceyTitle]]
-               (messageLine msg lasturl cats : viewblock ) spiceyFooter
-              `addPageParam` cookie)
+    withSessionCookie $ bootstrapPage "." ["bootstrap.min","spicey"]
+      spiceyTitle spiceyHomeBrand routemenu (rightTopMenu login)
+      0 []  [h1 [htxt spiceyTitle]]
+      (messageLine msg lasturl cats listurl : viewblock ) spiceyFooter
  where
-  messageLine msg lasturl cats =
+  messageLine msg lasturl cats listurl =
     if null msg
       then HtmlStruct "header" [("class","pagemessage pagemessage-empty")]
-             [htxt $ "Last page: "++lasturl ++ " / Cats: " ++ unwords cats]
+             [htxt $ "Last page: "++lasturl ++ " / Cats: " ++ unwords cats ++ " / " ++ listurl]
       else HtmlStruct "header" [("class","pagemessage")] [htxt msg]
         
   rightTopMenu login =
@@ -383,7 +407,7 @@ glyphicon n = textstyle ("glyphicon glyphicon-" ++ n) ""
 
 --- Definition of the session state to store the page message (a string).
 pageMessage :: Global (SessionStore String)
-pageMessage = global emptySessionStore Temporary
+pageMessage = global emptySessionStore (Persistent (inDataDir "pageMessage"))
 
 --- Gets the page message and delete it.
 getPageMessage :: IO String
@@ -397,30 +421,12 @@ setPageMessage :: String -> IO ()
 setPageMessage msg = putSessionData pageMessage msg
 
 --------------------------------------------------------------------------
--- Session store for current category.
-
---- Definition of the session state to store the last URL (as a string).
-currentCategory :: Global (SessionStore String)
-currentCategory = global emptySessionStore Temporary
-
---- Gets the list of URLs of the current session.
-getCurrentCategory :: IO String
-getCurrentCategory = getSessionData currentCategory ""
-
---- Saves the last URL of the current session.
-saveCurrentCategory :: String -> IO ()
---saveCurrentCategory catname = putSessionData catname currentCategory
--- This temporary change is necessary due to a bug in current KiCS2
--- implementation. It seems that different temporary globals are merged?
-saveCurrentCategory _ = done
-
---------------------------------------------------------------------------
 -- Another example for using sessions.
 -- We store the list of selected URLs into  the current session.
 
 --- Definition of the session state to store the last URL (as a string).
 lastUrls :: Global (SessionStore [String])
-lastUrls = global emptySessionStore Temporary
+lastUrls = global emptySessionStore (Persistent (inDataDir "lastUrls"))
 
 --- Gets the list of URLs of the current session.
 getLastUrls :: IO [String]
@@ -436,5 +442,11 @@ saveLastUrl :: String -> IO ()
 saveLastUrl url = do
   urls <- getLastUrls
   putSessionData lastUrls (url:urls)
+
+--- Gets the URL to list the current category.
+getCurrentCatsURL :: IO String
+getCurrentCatsURL = do
+  cats <- getCurrentCats
+  return $ showControllerURL "Category" ("list" : cats)
 
 --------------------------------------------------------------------------

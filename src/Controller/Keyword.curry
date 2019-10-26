@@ -1,6 +1,6 @@
 module Controller.Keyword
-   ( mainKeywordController, newKeywordForm
-   ) where
+  ( mainKeywordController, newKeywordForm
+  ) where
 
 import Global
 import List
@@ -12,6 +12,7 @@ import HTML.Base
 import HTML.Session
 import HTML.WUI
 
+import Config.EntityRoutes
 import Config.Storage
 import Recipes
 import SQL_Queries
@@ -22,7 +23,7 @@ import System.AuthorizedActions
 import System.Spicey
 import Config.UserProcesses
 import View.Recipe
-import View.RecipesEntitiesToHtml
+import View.EntitiesToHtml
 import Database.CDBI.Connection
 
 --- Choose the controller for a Keyword entity according to the URL parameter.
@@ -35,18 +36,11 @@ mainKeywordController =
        ["all"]    -> listAllKeywordController
        ["char",c] -> listCharKeywordController (head (urlencoded2string c))
        ["new"]  -> newKeywordController
-       ["show",s] -> applyKeywordControllerOn s showKeywordController
-       ["edit",s] -> applyKeywordControllerOn s editKeywordController
-       ["delete",s] -> applyKeywordControllerOn s deleteKeywordController
-       ["destroy",s] -> applyKeywordControllerOn s destroyKeywordController
+       ["show",s] -> controllerOnKey s showKeywordController
+       ["edit",s] -> controllerOnKey s editKeywordController
+       ["delete",s] -> controllerOnKey s deleteKeywordController
+       ["destroy",s] -> controllerOnKey s destroyKeywordController
        _ -> displayError "Illegal URL"
-
---- Applies a keyword controller on the keyword specified by the
---- key (first argument).
-applyKeywordControllerOn
-  :: String -> (Keyword -> Controller) -> Controller
-applyKeywordControllerOn s =
-  applyControllerOn (readKeywordKey s) (runJustT . getKeyword)
 
 ------------------------------------------------------------------------------
 --- The type of a new Keyword entity.
@@ -67,8 +61,8 @@ newKeywordForm =
     wuiNewKeywordStore
     (\_ -> wKeyword)
     (\_ entity -> transactionController (runT (createKeywordT entity))
-                    (nextInProcessOr listKeywordController Nothing))
-    (renderWuiExp "Neues Stichwort" "Speichern" listKeywordController)
+                    (nextInProcessOr (redirectController "?Keyword/list") Nothing))
+    (renderWUI "Neues Stichwort" "Speichern" "?Keyword/list")
 
 ---- The data stored for executing the WUI form.
 wuiNewKeywordStore :: Global (SessionStore ((), WuiStore NewKeyword))
@@ -96,8 +90,8 @@ editKeywordForm =
     wuiEditKeywordStore
     (\keyword -> wKeywordType keyword)
     (\_ entity -> transactionController (runT (updateKeywordT entity))
-                    (nextInProcessOr listKeywordController Nothing))
-    (renderWuiExp "Stichwort ändern" "Speichern" listKeywordController)
+                    (nextInProcessOr (redirectController "?Keyword/list") Nothing))
+    (renderWUI "Stichwort ändern" "Speichern" "?Keyword/list")
 
 ---- The data stored for executing the WUI form.
 wuiEditKeywordStore :: Global (SessionStore (Keyword, WuiStore Keyword))
@@ -119,12 +113,14 @@ deleteKeywordController keyword =
        (concat
           ["Stichwort \"",keywordToShortView keyword,"\" wirklich löschen?"])
 
---- Deletes a given Keyword entity.
+--- Deletes a given Keyword entity
+--- and proceeds with the list controller.
 destroyKeywordController :: Keyword -> Controller
 destroyKeywordController keyword =
-  checkAuthorization (keywordOperationAllowed (DeleteEntity keyword)) $ \_ ->
-    transactionController (runT (deleteKeywordT keyword))
-                          listKeywordController
+  checkAuthorization (keywordOperationAllowed (DeleteEntity keyword))
+   $ (\_ ->
+     transactionController (runT (deleteKeywordT keyword))
+      (redirectController "?Keyword/list"))
 
 --- Transaction to delete a given Keyword entity.
 deleteKeywordT :: Keyword -> DBAction ()
@@ -134,7 +130,6 @@ deleteKeywordT keyword = deleteKeyword keyword
 listKeywordController :: Controller
 listKeywordController =
   checkAuthorization (keywordOperationAllowed ListEntities) $ \_ -> do
-    saveCurrentCategory ""
     kws <- runQ queryAllKeywords
     return (keywordAlphabetView
               (map head

@@ -3,15 +3,16 @@ module View.RecipeDescription
   , wRecipeDescriptionType
   , showRecipeDescriptionView, listRecipeDescriptionView ) where
 
-import HTML.Base
-import HTML.WUI
-import Time
 import Sort
+import Time
+import HTML.Base
 import HTML.Styles.Bootstrap3
-import System.Spicey
-import System.SessionInfo
+import HTML.WUI
 import Recipes
-import View.RecipesEntitiesToHtml
+import Config.EntityRoutes
+import System.SessionInfo
+import System.Spicey
+import View.EntitiesToHtml
 
 --- The WUI specification for the entity type RecipeDescription.
 --- It also includes fields for associated entities.
@@ -104,15 +105,7 @@ listRecipeDescriptionView sinfo recipeDescriptions =
       recipeDescriptionToListView recipeDescription
        ++ (if userLoginOfSession sinfo == Nothing
               then []
-              else [[hrefButton
-                      ("?RecipeDescription/show/"
-                        ++ showRecipeDescriptionKey recipeDescription)
-                      [htxt "show"]]
-                   ,[hrefButton
-                      ("?RecipeDescription/edit/"
-                        ++ showRecipeDescriptionKey recipeDescription)
-                      [htxt "edit"]]
-                   ,[hrefButton
-                      ("?RecipeDescription/delete/"
-                        ++ showRecipeDescriptionKey recipeDescription)
+              else [[hrefButton (showRoute recipeDescription) [htxt "show"]]
+                   ,[hrefButton (editRoute recipeDescription) [htxt "edit"]]
+                   ,[hrefButton (deleteRoute recipeDescription)
                       [htxt "delete"]]])

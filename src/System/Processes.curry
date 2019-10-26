@@ -12,13 +12,13 @@ import Global
 import Maybe
 import ReadShowTerm
 
-import Control.AllSolutions
+import Control.AllSolutions ( getOneValue )
 import HTML.Base
 import HTML.Session
 
+import Config.RoutesData
 import Config.UserProcesses
 import System.Routes
-import Config.RoutesData
 
 --------------------------------------------------------------------------
 -- A operations on the datatype for process systems.
@@ -36,7 +36,7 @@ getControllerForState sid (ProcSpec _ ctrlof _) = ctrlof sid
 --- Is a state a final state, i.e., without successors, in a process system?
 isFinalState :: a -> Processes a -> IO Bool
 isFinalState sid (ProcSpec _ _ trans) = do
-  succs <- getOneSolution (\x -> let p free in x =:= trans sid p)
+  succs <- getOneValue (trans sid _)
   return (maybe True (const False) succs)
 
 --------------------------------------------------------------------------

@@ -10,11 +10,12 @@ import Time
 import HTML.Base
 import HTML.WUI
 import HTML.Styles.Bootstrap3
+import Config.EntityRoutes
 import System.Authentication
 import System.Spicey
 import System.SessionInfo
 import Recipes
-import View.RecipesEntitiesToHtml
+import View.EntitiesToHtml
 import View.Recipe ( leqRecipe )
 
 --- The WUI specification for the entity type Category.
@@ -58,8 +59,10 @@ leqCategory x1 x2 = categoryPosition x1 <= categoryPosition x2
 
 --- Supplies a list view for a given list of Category entities.
 --- Shows also buttons to show, delete, or edit entries.
---- The arguments are the name of the category, the list of Category entities,
---- and the controller functions to show, delete and edit entities.
+--- The arguments are the user session info, the name and key strings
+--- of all categories from the root to the current category,
+--- the current category, and the list of categories and recipes
+--- contained in this category.
 listCategoryView
  :: UserSessionInfo -> [(String,String)] -> Category -> [Category] -> [Recipe]
   -> [HtmlExp]
@@ -94,10 +97,6 @@ listCategoryView sinfo parentcats currentcat categorys recipes =
     listCategory category =
       categoryToListView (map snd parentcats) category
        ++ (if isAdminSession sinfo
-             then [[hrefSmallButton
-                      ("?Category/edit/" ++ showCategoryKey category)
-                      [htxt "Ändern"]],
-                   [hrefSmallButton
-                      ("?Category/delete/" ++ showCategoryKey category)
-                      [htxt "Löschen"]]]
+             then [[hrefSmallButton (editRoute   category) [htxt "Ändern"]],
+                   [hrefSmallButton (deleteRoute category) [htxt "Löschen"]]]
              else [])

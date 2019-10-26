@@ -20,7 +20,7 @@ import System.SessionInfo
 import System.Authorization
 import System.AuthorizedActions
 import Config.UserProcesses
-import View.RecipesEntitiesToHtml
+import View.EntitiesToHtml
 import Database.CDBI.Connection
 
 --- Choose the controller for a Category entity according to the URL parameter.
@@ -30,19 +30,12 @@ mainCategoryController =
      case args of
        [] -> listCategoryController
        ("list":_) -> listCategoryController
-       ["new",s] -> applyCategoryControllerOn s newCategoryController
-       ["show",s] -> applyCategoryControllerOn s showCategoryController
-       ["edit",s] -> applyCategoryControllerOn s editCategoryController
-       ["delete",s] -> applyCategoryControllerOn s deleteCategoryController
-       ["destroy",s] -> applyCategoryControllerOn s destroyCategoryController
-       _ -> displayError "Illegal URL"
-
---- Applies a category controller on the category specified by the
---- key (first argument).
-applyCategoryControllerOn
-  :: String -> (Category -> Controller) -> Controller
-applyCategoryControllerOn s =
-  applyControllerOn (readCategoryKey s) (runJustT . getCategory)
+       ["new",s] -> controllerOnKey s newCategoryController
+       ["show",s] -> controllerOnKey s showCategoryController
+       ["edit",s] -> controllerOnKey s editCategoryController
+       ["delete",s] -> controllerOnKey s deleteCategoryController
+       ["destroy",s] -> controllerOnKey s destroyCategoryController
+       _ -> displayUrlError
 
 ------------------------------------------------------------------------------
 --- The type of a new Category entity.
@@ -52,24 +45,27 @@ type NewCategory = (String,Int)
 newCategoryController :: Category -> Controller
 newCategoryController cat =
   checkAuthorization (categoryOperationAllowed NewEntity) $ \_ -> do
-    setParWuiStore wuiNewCategoryStore cat ("",0)
+    listurl <- getCurrentCatsURL
+    setParWuiStore newCategoryStore (cat,listurl) ("",0)
     return [formExp newCategoryForm]
 
 --- Supplies a WUI form to create a new Category entity.
 --- The fields of the entity have some default values.
-newCategoryForm :: HtmlFormDef (Category, WuiStore NewCategory)
+newCategoryForm :: HtmlFormDef ((Category,String), WuiStore NewCategory)
 newCategoryForm =
   pwui2FormDef "Controller.Category.newCategoryForm"
-    wuiNewCategoryStore
+    newCategoryStore
     (\_ -> wCategory)
-    (\cat entity -> transactionController (runT (createCategoryT cat entity))
-                      (nextInProcessOr listCategoryController Nothing))
-    (renderWuiExp "Neue Kategorie" "Speichern" listCategoryController)
+    (\ (cat,listurl) entity -> do
+       transactionController (runT (createCategoryT cat entity))
+         (nextInProcessOr (redirectController listurl) Nothing))
+    (\ (_,listurl) -> renderWUI "Neue Kategorie" "Speichern" listurl ())
 
 ---- The data stored for executing the WUI form.
-wuiNewCategoryStore :: Global (SessionStore (Category, WuiStore NewCategory))
-wuiNewCategoryStore =
-  global emptySessionStore (Persistent (inDataDir "wuiNewCategoryStore"))
+newCategoryStore ::
+  Global (SessionStore ((Category,String), WuiStore NewCategory))
+newCategoryStore =
+  global emptySessionStore (Persistent (inDataDir "newCategoryStore"))
 
 --- Transaction to persist a new Category entity to the database.
 createCategoryT :: Category -> (String,Int) -> DBAction ()
@@ -94,11 +90,12 @@ editCategoryForm =
   pwui2FormDef "Controller.Category.editCategoryForm"
     wuiEditCategoryStore
     (\cat -> wCategoryType cat)
-    (\cat entity ->
+    (\cat entity -> do
+       listurl <- getCurrentCatsURL
        checkAuthorization (categoryOperationAllowed (UpdateEntity cat)) $ \_ ->
          transactionController (runT (updateCategory entity))
-           (nextInProcessOr listCategoryController Nothing))
-    (renderWuiExp "Kategorie ändern" "Speichern" listCategoryController)
+           (nextInProcessOr (redirectController listurl) Nothing))
+    (renderWUI "Kategorie ändern" "Speichern" "?Category/list")
 
 ---- The data stored for executing the WUI form.
 wuiEditCategoryStore :: Global (SessionStore (Category, WuiStore Category))
@@ -114,12 +111,15 @@ deleteCategoryController category =
     confirmDeletionPage
       (concat ["Really delete entity \"",categoryToShortView category,"\"?"])
 
---- Deletes a given Category entity.
+--- Deletes a given Category entity
+--- and proceeds with the list controller.
 destroyCategoryController :: Category -> Controller
-destroyCategoryController category =
-  checkAuthorization (categoryOperationAllowed (DeleteEntity category)) $ \_ ->
-    transactionController (runT (deleteCategoryT category))
-                          (listCategoryControllerWithArgs [])
+destroyCategoryController category = do
+  listurl <- getCurrentCatsURL
+  checkAuthorization (categoryOperationAllowed (DeleteEntity category))
+   $ (\_ ->
+     transactionController (runT (deleteCategoryT category))
+      (redirectController listurl))
 
 --- Transaction to delete a given Category entity.
 deleteCategoryT :: Category -> DBAction ()

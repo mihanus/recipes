@@ -1,4 +1,4 @@
-module View.RecipesEntitiesToHtml where
+module View.EntitiesToHtml where
 
 import HTML.Base
 import HTML.WUI

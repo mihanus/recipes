@@ -8,15 +8,16 @@ import HTML.Base
 import HTML.Session
 import HTML.WUI
 
+import Recipes
+import Config.EntityRoutes
 import Config.Storage
 import Config.UserProcesses
-import Recipes
 import View.RecipeDescription
 import System.SessionInfo
 import System.Authorization
 import System.AuthorizedActions
 import System.Spicey
-import View.RecipesEntitiesToHtml
+import View.EntitiesToHtml
 import Database.CDBI.Connection
 
 --- Choose the controller for a RecipeDescription entity according to the URL parameter.
@@ -27,21 +28,11 @@ mainRecipeDescriptionController =
        [] -> listRecipeDescriptionController
        ["list"] -> listRecipeDescriptionController
        ["new"] -> newRecipeDescriptionController
-       ["show",s] ->
-         applyRecipeDescriptionControllerOn s showRecipeDescriptionController
-       ["edit",s] ->
-         applyRecipeDescriptionControllerOn s editRecipeDescriptionController
-       ["delete",s] ->
-         applyRecipeDescriptionControllerOn s deleteRecipeDescriptionController
-       ["destroy",s] ->
-         applyRecipeDescriptionControllerOn s destroyRecipeDescriptionController
+       ["show",s] -> controllerOnKey s showRecipeDescriptionController
+       ["edit",s] -> controllerOnKey s editRecipeDescriptionController
+       ["delete",s] -> controllerOnKey s deleteRecipeDescriptionController
+       ["destroy",s] -> controllerOnKey s destroyRecipeDescriptionController
        _ -> displayUrlError
-
-applyRecipeDescriptionControllerOn
-  :: String -> (RecipeDescription -> Controller) -> Controller
-applyRecipeDescriptionControllerOn s =
-  applyControllerOn (readRecipeDescriptionKey s)
-                    (runJustT . getRecipeDescription)
 
 ------------------------------------------------------------------------------
 --- The type of a new RecipeDescription entity.
@@ -66,9 +57,10 @@ newRecipeDescriptionForm =
     (\possibleRecipes -> wRecipeDescription possibleRecipes)
     (\_ entity -> transactionController
                     (runT (createRecipeDescriptionT entity))
-                    (nextInProcessOr listRecipeDescriptionController Nothing))
-    (renderWuiExp "Create new RecipeDescription" "create"
-                  listRecipeDescriptionController)
+                    (nextInProcessOr (redirectController "?RecipeDescription/list")
+                      Nothing))
+    (renderWUI "Create new RecipeDescription" "Create"
+        "?RecipeDescription/list")
 
 ---- The data stored for executing the WUI form.
 wuiNewRecipeDescriptionStore ::
@@ -78,8 +70,7 @@ wuiNewRecipeDescriptionStore =
          (Persistent (inDataDir "wuiNewRecipeDescriptionStore"))
 
 --- Transaction to persist a new RecipeDescription entity to the database.
-createRecipeDescriptionT
-  :: (String,String,String,String,String,Recipe) -> DBAction ()
+createRecipeDescriptionT :: NewRecipeDescription -> DBAction ()
 createRecipeDescriptionT
     (servings,ingredients,directions,prepTime,cookTime,recipe) =
   newRecipeDescriptionWithRecipeRecDescKey servings ingredients directions
@@ -112,9 +103,10 @@ editRecipeDescriptionForm =
     (\ (recipeDescription, relatedRecipe, possibleRecipes) ->
        wRecipeDescriptionType recipeDescription relatedRecipe possibleRecipes)
     (\_ entity -> transactionController (runT (updateRecipeDescriptionT entity))
-                    (nextInProcessOr listRecipeDescriptionController Nothing))
-    (renderWuiExp "Edit RecipeDescription" "change"
-                  listRecipeDescriptionController)
+                    (nextInProcessOr (redirectController "?RecipeDescription/list")
+                      Nothing))
+    (renderWUI "Edit RecipeDescription" "Change"
+                  "?RecipeDescription/list")
 
 ---- The data stored for executing the WUI form.
 wuiEditRecipeDescriptionStore ::
@@ -142,13 +134,15 @@ deleteRecipeDescriptionController recipeDescription =
                ,recipeDescriptionToShortView recipeDescription
                 ,"\"?"])
 
---- Deletes a given RecipeDescription entity.
+--- Deletes a given RecipeDescription entity
+--- and proceeds with the list controller.
 destroyRecipeDescriptionController :: RecipeDescription -> Controller
 destroyRecipeDescriptionController recipeDescription =
   checkAuthorization
-   (recipeDescriptionOperationAllowed (DeleteEntity recipeDescription)) $ \_ ->
-    transactionController (runT (deleteRecipeDescriptionT recipeDescription))
-                          listRecipeDescriptionController
+   (recipeDescriptionOperationAllowed (DeleteEntity recipeDescription))
+   $ (\_ ->
+     transactionController (runT (deleteRecipeDescriptionT recipeDescription))
+      (redirectController "?RecipeDescription/list"))
 
 --- Transaction to delete a given RecipeDescription entity.
 deleteRecipeDescriptionT :: RecipeDescription -> DBAction ()

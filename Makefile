@@ -33,14 +33,14 @@ WEBSERVERDIR=$(HOME)/public_html/SAM/recipes_$(SYSTEM)
 # Executable of the Curry Package Manager CPM:
 CPM := $(CURRYBIN)/cypm
 
+# Executable of the curry2cgi:
+CURRY2CGI := $(shell which curry2cgi)
+
 # The root directory of the sources of the Spicey application:
 SRCDIR := $(CURDIR)/src
 
 # The load path for the Spicey application:
 export CURRYPATH := $(SRCDIR):$(SRCDIR)/Model
-
-# Executable of the curry2cgi:
-CURRY2CGI := $(shell which curry2cgi)
 
 ############################################################################
 
@@ -85,13 +85,14 @@ deploy: checkdeploy
 	$(MAKE) $(WEBSERVERDIR)/spicey.cgi
 	# copy other files (style sheets, images,...)
 	cp -r public/* $(WEBSERVERDIR)
-	mkdir -p $(WEBSERVERDIR)/data # create private data dir
-	cp -p data/htaccess $(WEBSERVERDIR)/data/.htaccess # and make it private
+	cp -p upload-handler.cgi $(WEBSERVERDIR)
 	chmod -R go+rX $(WEBSERVERDIR)
 	# recreate directory for storing local session data:
 	#/bin/rm -r $(WEBSERVERDIR)/data
 	mkdir -p $(WEBSERVERDIR)/data
 	chmod 700 $(WEBSERVERDIR)/data
+	mkdir -p $(WEBSERVERDIR)/uploads
+	chmod 700 $(WEBSERVERDIR)/uploads
 
 $(WEBSERVERDIR)/spicey.cgi: src/*.curry src/*/*.curry
 	$(CPM) exec $(CURRY2CGI) --system="$(CURRYHOME)" \

@@ -19,7 +19,7 @@ import System.Authentication
 import System.Spicey
 import System.SessionInfo
 import Recipes
-import View.RecipesEntitiesToHtml
+import View.EntitiesToHtml
 
 --- Shows keywords as comma-separated string.
 keywords2string :: [Keyword] -> String
@@ -130,21 +130,20 @@ leqRecipeRef x1 x2 =
   (recipeReference x1,recipeName x1) <= (recipeReference x2,recipeName x2)
 
 --- Supplies a view for a given single Recipe entity.
---- Shows also buttons to show, delete, or edit entries.
---- The arguments are the Recipe entity
---- and the controller functions to show, delete and edit entities.
-singleRecipeView :: UserSessionInfo -> [(Category,String)]
-                 -> Recipe -> [Keyword] -> Maybe RecipeDescription
-                 -> [HtmlExp]
-singleRecipeView sinfo parentcats recipe keywords mbrecdesc =
+singleRecipeView :: UserSessionInfo -> [(Category,String)] -> Recipe
+  -> [Keyword] -> Maybe RecipeDescription -> Maybe String -> Maybe String
+  -> [HtmlExp]
+singleRecipeView sinfo parentcats recipe keywords mbrecdesc mbpic mbpdf =
   [h4 (concatMap
           (\ (n,(cat,a)) ->
             [hrefButton (showControllerURL "Category"
                            ("list" : map snd (take n parentcats) ++[a]))
                     [htxt (categoryName cat)], htxt " >> "])
           (zip [0..] parentcats)),
-   h1 [htxt (recipeName recipe)],
+   h1 $ [htxt $ recipeName recipe] ++
+        maybe [] (\pdf -> [htxt " (", href pdf [htxt "PDF"], htxt ")"]) mbpdf,
    h4 [htxt ("Stichworte: " ++ keywords2string keywords)]] ++
+  (maybe [] (\pic -> [par [imageIcon pic]]) mbpic) ++
   (let ref = recipeReference recipe
    in if null ref then [] else [h4 $ recipeReference2HTML ref]) ++
   [par (showRecipeDescription mbrecdesc)] ++
@@ -154,6 +153,12 @@ singleRecipeView sinfo parentcats recipe keywords mbrecdesc =
                        ("edit" : showRecipeKey recipe : map snd parentcats))
                     [htxt "Ändern"], nbsp,
          hrefButton (showControllerURL "Recipe"
+                       ["uploadpic", showRecipeKey recipe])
+           [htxt $ "Bild " ++ maybe "hinzufügen" (const "ändern") mbpic], nbsp,
+         hrefButton (showControllerURL "Recipe"
+                       ["uploadpdf", showRecipeKey recipe])
+           [htxt $ "PDF " ++ maybe "hinzufügen" (const "ändern") mbpdf], nbsp,
+         hrefButton (showControllerURL "Recipe"
                        ("delete" : showRecipeKey recipe :
                         maybe [] (\c -> [snd c]) currentCat))
                     [htxt $ maybe "Rezept" (const "in Kategorie") currentCat ++
@@ -161,9 +166,13 @@ singleRecipeView sinfo parentcats recipe keywords mbrecdesc =
         ]]
    else []
  where
-   currentCat = if null parentcats
-                  then Nothing
-                  else Just (last parentcats)
+  currentCat = if null parentcats
+                 then Nothing
+                 else Just (last parentcats)
+
+  imageIcon src = href src
+    [image src "Bild" `addAttr` ("width","400")
+       `addClass` "img-responsive img-rounded center-block"]
 
 -- Shows the reference of a recipe. If it contains the substring "<....pdf>",
 -- it will be shown as a reference to the `recipes_archives` directory.
