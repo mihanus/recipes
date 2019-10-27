@@ -95,7 +95,7 @@ newRecipeController catkey =
     cat <- runJustT $ stringcatkey2cat catkey
     listurl <- getCurrentCatsURL
     setParWuiStore createRecipeStore (sinfo,cat,listurl) ("","","")
-    return [par [htxt explainPDF], formExp createRecipeForm]
+    return [formExp createRecipeForm]
 
 explainPDF :: String
 explainPDF = unlines
@@ -144,7 +144,7 @@ newRecipeDescController catkey =
     listurl <- getCurrentCatsURL
     setParWuiStore createRecipeDescStore
                    (sinfo,cat,listurl) ("","","","","","","","")
-    return [par [htxt explainPDF], formExp createRecipeDescForm]
+    return [formExp createRecipeDescForm]
 
 type NewRecipeDesc = (String,String,String,String,String,String,String,String)
 

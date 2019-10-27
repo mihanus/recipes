@@ -278,7 +278,6 @@ getPage viewblock = case viewblock of
   [HtmlText ""]          -> return $ redirectPage "spicey.cgi"
   [HtmlText ('?':route)] -> return $ redirectPage ('?':route)
   _ -> do
-    cats      <- getCurrentCats
     listurl   <- getCurrentCatsURL
     routemenu <- getRouteMenu
     msg       <- getPageMessage
@@ -287,12 +286,12 @@ getPage viewblock = case viewblock of
     withSessionCookie $ bootstrapPage "." ["bootstrap.min","spicey"]
       spiceyTitle spiceyHomeBrand routemenu (rightTopMenu login)
       0 []  [h1 [htxt spiceyTitle]]
-      (messageLine msg lasturl cats listurl : viewblock ) spiceyFooter
+      (messageLine msg lasturl listurl : viewblock ) spiceyFooter
  where
-  messageLine msg lasturl cats listurl =
+  messageLine msg lasturl listurl =
     if null msg
       then HtmlStruct "header" [("class","pagemessage pagemessage-empty")]
-             [htxt $ "Last page: "++lasturl ++ " / Cats: " ++ unwords cats ++ " / " ++ listurl]
+             [nbsp] --[htxt $ "Last page: "++lasturl ++ " / " ++ listurl]
       else HtmlStruct "header" [("class","pagemessage")] [htxt msg]
         
   rightTopMenu login =
