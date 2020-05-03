@@ -34,7 +34,8 @@ string2keywords = filter (not . null) . map strip . words
                       else let (w,s') = break (==',') s
                             in w : words (if null s' then s' else tail s')
 
-  strip = reverse . dropWhile isSpace . reverse . dropWhile isSpace
+strip :: String -> String
+strip = reverse . dropWhile isSpace . reverse . dropWhile isSpace
 
 
 --- The WUI specification for the entity type Recipe.
@@ -64,9 +65,18 @@ wRecipeDesc :: WuiSpec (String,String,String,String,String,String,String,String)
 wRecipeDesc =
   withRendering
    (w8Tuple (wRequiredStringSize 60) (wStringSize 60) (wStringSize 60)
-            wRequiredString (wTextArea (10,70)) (wTextArea (13,70))
+            wRequiredString
+            (wRequiredTextArea (10,70)) (wRequiredTextArea (13,70))
             wString wString)
    (renderLabels (take 8 (recipeLabelList++recipeDescriptionLabelList)))
+
+--- A widget for editing string values in a text area
+--- that are required to be non-empty.
+--- The argument specifies the height and width of the text area.
+wRequiredTextArea :: (Int,Int) -> WuiSpec String
+wRequiredTextArea dims =
+  wTextArea dims `withError`     "Missing input:"
+                 `withCondition` (not . null . strip)
 
 --- Transformation from data of a WUI form to entity type Recipe.
 tuple2RecipeDesc :: Recipe -> RecipeDescription
