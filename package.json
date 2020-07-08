@@ -5,17 +5,17 @@
     "synopsis": "A web application for managing recipes",
     "category": [ "Web" ],
     "dependencies": {
-        "base"      : ">= 1.0.0, < 2.0.0",
-        "cdbi"      : ">= 2.0.0",
-        "cryptohash": ">= 0.0.1",
-        "html2"     : ">= 0.0.1",
-        "random"    : ">= 0.0.1",
-        "searchtree": ">= 1.0.0",
-        "wui2"      : ">= 0.0.1"
+        "base"       : ">= 1.0.0, < 2.0.0",
+        "cdbi"       : ">= 2.0.0",
+        "cryptohash" : ">= 0.0.1",
+        "html2"      : ">= 0.0.1",
+        "random"     : ">= 0.0.1",
+        "searchtree" : ">= 1.0.0",
+        "wui2"       : ">= 0.0.1"
     },
     "compilerCompatibility": {
-        "pakcs": ">= 2.0.0",
-        "kics2": ">= 2.0.0"
+        "pakcs": ">= 2.0.0, < 3.0.0",
+        "kics2": ">= 2.0.0, < 3.0.0"
     },
     "sourceDirs": [ "src", "src/Model" ]
 }

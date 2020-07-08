@@ -1,6 +1,6 @@
 --- This file has been generated from
 --- 
----     /home/mh/home/curry/applications/recipes2/Recipes.erdterm
+---     /home/mh/home/curry/applications/recipes/Recipes.erdterm
 --- 
 --- and contains definitions for all entities and relations
 --- specified in this model.

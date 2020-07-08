@@ -9,7 +9,7 @@ import Time
 
 import HTML.Base
 import HTML.WUI
-import HTML.Styles.Bootstrap3
+import HTML.Styles.Bootstrap4
 import Config.EntityRoutes
 import System.Authentication
 import System.Spicey
@@ -51,7 +51,7 @@ wCategoryType category =
 showCategoryView :: UserSessionInfo -> Category -> [Recipe] -> [HtmlExp]
 showCategoryView _ category recipes =
   categoryToDetailsView category recipes
-   ++ [hrefButton "?Category/list" [htxt "back to Category list"]]
+   ++ [hrefPrimSmButton "?Category/list" [htxt "back to Category list"]]
 
 --- Compares two Category entities. This order is used in the list view.
 leqCategory :: Category -> Category -> Bool
@@ -69,7 +69,7 @@ listCategoryView
 listCategoryView sinfo parentcats currentcat categorys recipes =
   [h4 (concatMap
          (\ (n,(cname,a)) ->
-           [hrefButton (showControllerURL "Category"
+           [hrefPrimBadge (showControllerURL "Category"
                           ("list" : map snd (take n parentcats) ++ [a]))
                  [htxt cname], htxt " >> "])
          (zip [0..] (init parentcats))),
@@ -78,16 +78,16 @@ listCategoryView sinfo parentcats currentcat categorys recipes =
             map (recipeToListView (map snd parentcats))
                 (sortBy leqRecipe recipes))] ++
    if isAdminSession sinfo
-   then [par [hrefButton (showControllerURL "Recipe"
+   then [par [hrefPrimSmButton (showControllerURL "Recipe"
                             ["new", showCategoryKey currentcat])
                          [htxt "Neues Rezept"], nbsp,
-              hrefButton (showControllerURL "Recipe"
+              hrefPrimSmButton (showControllerURL "Recipe"
                             ["newref", showCategoryKey currentcat])
                          [htxt "Neue Rezeptreferenz"], nbsp,
-              hrefButton (showControllerURL "Recipe"
+              hrefPrimSmButton (showControllerURL "Recipe"
                             ["add", showCategoryKey currentcat])
                          [htxt "Vorhandenes Rezept hinzufügen"], nbsp,
-              hrefButton (showControllerURL "Category"
+              hrefPrimSmButton (showControllerURL "Category"
                             ["new", showCategoryKey currentcat])
                          [htxt "Neue Kategorie hinzufügen"]
              ]]
@@ -97,6 +97,6 @@ listCategoryView sinfo parentcats currentcat categorys recipes =
     listCategory category =
       categoryToListView (map snd parentcats) category
        ++ (if isAdminSession sinfo
-             then [[hrefSmallButton (editRoute   category) [htxt "Ändern"]],
-                   [hrefSmallButton (deleteRoute category) [htxt "Löschen"]]]
+             then [[hrefPrimBadge (editRoute   category) [htxt "Ändern"]],
+                   [hrefPrimBadge (deleteRoute category) [htxt "Löschen"]]]
              else [])

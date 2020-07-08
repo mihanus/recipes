@@ -4,11 +4,12 @@ module View.Keyword
   , keywordAlphabetView )
 where
 
+import List ( intercalate )
 import HTML.Base
 import HTML.WUI
 import Time
 import Sort
-import HTML.Styles.Bootstrap3
+import HTML.Styles.Bootstrap4
 import Recipes
 import Config.EntityRoutes
 import System.SessionInfo
@@ -39,7 +40,7 @@ wKeywordType keyword =
 showKeywordView :: UserSessionInfo -> Keyword -> [HtmlExp]
 showKeywordView _ keyword =
   keywordToDetailsView keyword
-   ++ [hrefButton "?Keyword/list" [htxt "back to Keyword list"]]
+   ++ [hrefPrimSmButton "?Keyword/list" [htxt "back to Keyword list"]]
 
 --- Compares two Keyword entities. This order is used in the list view.
 leqKeyword :: Keyword -> Keyword -> Bool
@@ -48,8 +49,9 @@ leqKeyword x1 x2 = keywordName x1 <= keywordName x2
 --- Supplies a list view for a given list of Keyword entities.
 listKeywordView :: UserSessionInfo -> String -> [Keyword] -> [HtmlExp]
 listKeywordView _ title keywords =
-  [h1 [htxt title]
-  ,spTable (map keywordToListView (sortBy leqKeyword keywords))]
+  [h1 [htxt title],
+   par (intercalate [nbsp]
+          (concatMap keywordToListView (sortBy leqKeyword keywords)))]
 
 
 --- Supplies a list view for a given list of characters to select keywords
@@ -57,8 +59,10 @@ listKeywordView _ title keywords =
 keywordAlphabetView :: [Char] -> [HtmlExp]
 keywordAlphabetView cs =
   [h1 [htxt $ "Stichworte beginnend mit..."],
-   par (map (\c -> hrefButton (showControllerURL "Keyword"
-                                  ["char", string2urlencoded [c]])
-                          [htxt [c], nbsp]) cs),
-   par [hrefButton (showControllerURL "Keyword" ["all"])
-                   [htxt "Alle Stichworte"]]]
+   par (intercalate [nbsp] (map charButton cs)),
+   par [hrefPrimSmButton (showControllerURL "Keyword" ["all"])
+                         [htxt "Alle Stichworte"]]]
+ where
+  charButton c =
+    [hrefPrimBadge (showControllerURL "Keyword" ["char", string2urlencoded [c]])
+                   [htxt [c]]]

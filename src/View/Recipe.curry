@@ -12,7 +12,7 @@ import Time
 
 import Config.Storage
 import HTML.Base
-import HTML.Styles.Bootstrap3
+import HTML.Styles.Bootstrap4
 import HTML.Session
 import HTML.WUI
 import System.Authentication
@@ -125,7 +125,7 @@ wRecipeType recipe (Just recdesc) =
 showRecipeView :: UserSessionInfo -> Recipe -> [Keyword] -> [HtmlExp]
 showRecipeView _ recipe keywords =
   recipeToDetailsView recipe keywords
-   ++ [hrefButton "?Recipe/list" [htxt "back to Recipe list"]]
+   ++ [hrefPrimSmButton "?Recipe/list" [htxt "back to Recipe list"]]
 
 --------------------------------------------------------------------------
 --- Compares two Recipe entities. This order is used in the list view.
@@ -145,10 +145,10 @@ singleRecipeView :: UserSessionInfo -> [(Category,String)] -> Recipe
   -> [HtmlExp]
 singleRecipeView sinfo parentcats recipe keywords mbrecdesc mbpic mbpdf =
   [h4 (concatMap
-          (\ (n,(cat,a)) ->
-            [hrefButton (showControllerURL "Category"
-                           ("list" : map snd (take n parentcats) ++[a]))
-                    [htxt (categoryName cat)], htxt " >> "])
+          (\ (n, (cat,a)) ->
+            [hrefPrimBadge (showControllerURL "Category"
+                             ("list" : map snd (take n parentcats) ++[a]))
+                           [htxt (categoryName cat)], htxt " >> "])
           (zip [0..] parentcats)),
    h1 $ [htxt $ recipeName recipe] ++
         maybe [] (\pdf -> [htxt " (", href pdf [htxt "PDF"], htxt ")"]) mbpdf,
@@ -159,16 +159,16 @@ singleRecipeView sinfo parentcats recipe keywords mbrecdesc mbpic mbpdf =
   [par (showRecipeDescription mbrecdesc)] ++
   if isAdminSession sinfo
    then
-   [par [hrefButton (showControllerURL "Recipe"
+   [par [hrefPrimSmButton (showControllerURL "Recipe"
                        ("edit" : showRecipeKey recipe : map snd parentcats))
                     [htxt "Ändern"], nbsp,
-         hrefButton (showControllerURL "Recipe"
+         hrefPrimSmButton (showControllerURL "Recipe"
                        ["uploadpic", showRecipeKey recipe])
            [htxt $ "Bild " ++ maybe "hinzufügen" (const "ändern") mbpic], nbsp,
-         hrefButton (showControllerURL "Recipe"
+         hrefPrimSmButton (showControllerURL "Recipe"
                        ["uploadpdf", showRecipeKey recipe])
            [htxt $ "PDF " ++ maybe "hinzufügen" (const "ändern") mbpdf], nbsp,
-         hrefButton (showControllerURL "Recipe"
+         hrefPrimSmButton (showControllerURL "Recipe"
                        ("delete" : showRecipeKey recipe :
                         maybe [] (\c -> [snd c]) currentCat))
                     [htxt $ maybe "Rezept" (const "in Kategorie") currentCat ++

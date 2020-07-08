@@ -25,6 +25,7 @@ module System.Spicey (
   ) where
 
 import Char         ( isSpace, isDigit )
+import FilePath     ( (</>) )
 import Global
 import ReadShowTerm ( readsQTerm )
 import Time
@@ -32,7 +33,7 @@ import Time
 import Database.CDBI.Connection ( SQLResult )
 import HTML.Base
 import HTML.Session
-import HTML.Styles.Bootstrap3
+import HTML.Styles.Bootstrap4
 import HTML.WUI
 
 import Config.Storage
@@ -119,9 +120,10 @@ confirmDeletionPage question = do
   case ctrlargs of
     (_:args) -> return $
       [h3 [htxt question],
-       par [hrefButton (showControllerURL entity ("destroy":args)) [htxt "Yes"],
+       par [hrefPrimSmButton (showControllerURL entity ("destroy":args))
+                             [htxt "Ja"],
             nbsp,
-            hrefButton listurl [htxt "No"]]]
+            hrefScndSmButton listurl [htxt "Nö"]]]
     _ -> displayUrlError
 
 
@@ -196,8 +198,8 @@ renderWUI title buttontag cancelurl _ hexp handler =
   [h1 [htxt title],
    hexp,
    breakline,
-   primButton buttontag (\env -> handler env >>= getPage),
-   hrefButton cancelurl [htxt "Abbrechen"]]
+   primSmButton buttontag (\env -> handler env >>= getPage), nbsp,
+   hrefScndSmButton cancelurl [htxt "Abbrechen"]]
 
 
 --- A WUI for manipulating CalendarTime entities.
@@ -259,17 +261,17 @@ spiceyTitle = "Michaels Rezeptverwaltung"
 
 --- The home URL and brand shown at the left top of the main page.
 spiceyHomeBrand :: (String, [HtmlExp])
-spiceyHomeBrand = ("?", [homeIcon, htxt " Alle Rezepte"])
+spiceyHomeBrand = ("?", [htxt " Alle Rezepte"])
 
 --- The standard footer of the Spicey page.
 spiceyFooter :: [HtmlExp]
 spiceyFooter =
   [par [htxt "powered by",
         href "http://www.informatik.uni-kiel.de/~pakcs/spicey"
-             [image "images/spicey-logo.png" "Spicey"]
+             [image "bt4/img/spicey-logo.png" "Spicey"]
           `addAttr` ("target","_blank"),
         htxt "Framework"]]
-        
+
 --- Transforms a view into an HTML form by adding the basic page layout.
 --- If the view is an empty text or a text starting with "?",
 --- generates a redirection page.
@@ -283,7 +285,7 @@ getPage viewblock = case viewblock of
     msg       <- getPageMessage
     login     <- getSessionLogin
     lasturl   <- getLastUrl
-    withSessionCookie $ bootstrapPage "." ["bootstrap.min","spicey"]
+    withSessionCookie $ bootstrapPage favIcon cssIncludes jsIncludes
       spiceyTitle spiceyHomeBrand routemenu (rightTopMenu login)
       0 []  [h1 [htxt spiceyTitle]]
       (messageLine msg lasturl listurl : viewblock ) spiceyFooter
@@ -295,13 +297,24 @@ getPage viewblock = case viewblock of
       else HtmlStruct "header" [("class","pagemessage")] [htxt msg]
         
   rightTopMenu login =
-    [[href "?login" (maybe [loginIcon, nbsp, htxt "Anmelden"]
-                           (\n -> [logoutIcon, nbsp, htxt "Abmelden"
-                                  ,htxt $ " ("
-                                  ,style "text-success" [userIcon]
-                                  ,htxt $ " "++n++")"
+    [[hrefNav "?login" (maybe [htxt "Anmelden"]
+                           (\n -> [ htxt "Abmelden"
+                                  , htxt $ " (" ++ n ++ ")"
                                   ])
                            login)]]
+
+favIcon :: String
+favIcon = "bt4" </> "img" </> "favicon.ico"
+
+cssIncludes :: [String]
+cssIncludes =
+  map (\n -> "bt4" </> "css" </> n ++ ".css")
+      ["bootstrap.min", "spicey"]
+
+jsIncludes :: [String]
+jsIncludes = 
+  map (\n -> "bt4" </> "js" </> n ++ ".js")
+      ["jquery.slim.min", "bootstrap.bundle.min"]
 
 -------------------------------------------------------------------------
 -- Action performed when a "cancel" button is pressed.
@@ -376,28 +389,9 @@ maybeUserDefinedToHtml ud = textstyle "type_string" (maybe "" show ud)
 --------------------------------------------------------------------------
 -- Auxiliary HTML items:
 
---- Standard table in Spicey. Visualize it with a grid or with
---- a table if there are too many columns.
+--- Standard table in Spicey.
 spTable :: [[[HtmlExp]]] -> HtmlExp
 spTable items = table items  `addClass` "table table-hover table-condensed"
-
---------------------------------------------------------------------------
--- Icons:
-
-homeIcon :: HtmlExp
-homeIcon   = glyphicon "home"
-
-loginIcon :: HtmlExp
-loginIcon  = glyphicon "log-in"
-
-logoutIcon :: HtmlExp
-logoutIcon = glyphicon "log-out"
-
-arrowIcon :: HtmlExp
-arrowIcon  = glyphicon "arrow-right"
-
-glyphicon :: String -> HtmlExp
-glyphicon n = textstyle ("glyphicon glyphicon-" ++ n) ""
 
 --------------------------------------------------------------------------
 -- The page messages are implemented by a session store.

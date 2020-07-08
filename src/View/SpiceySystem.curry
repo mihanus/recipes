@@ -10,7 +10,7 @@ module View.SpiceySystem
  where
 
 import HTML.Base
-import HTML.Styles.Bootstrap3 (defaultButton, hrefButton, primButton)
+import HTML.Styles.Bootstrap4 ( hrefScndSmButton, primSmButton, scndButton )
 
 import Config.Globals
 import Config.UserProcesses
@@ -28,10 +28,10 @@ loginView (currlogin, listurl) =
   case currlogin of
    Nothing -> [h3 [htxt "Manager password:"],
                password passwdfield,
-               primButton "Anmelden" loginHandler]
+               primSmButton "Anmelden" loginHandler]
    Just _  -> [h3 [htxt "Wirklich abmelden?"],
-               primButton "Abmelden" logoutHandler,
-               hrefButton listurl [htxt "Abbrechen"]]
+               primSmButton "Abmelden" logoutHandler,
+               hrefScndSmButton listurl [htxt "Abbrechen"]]
  where
   passwdfield free
   

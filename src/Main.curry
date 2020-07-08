@@ -13,7 +13,6 @@ import System.Routes
 import System.Processes
 import System.Spicey
 
-
 dispatcher :: IO HtmlPage
 dispatcher = do
   -- get url

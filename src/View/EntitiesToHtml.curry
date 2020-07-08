@@ -2,7 +2,7 @@ module View.EntitiesToHtml where
 
 import HTML.Base
 import HTML.WUI
-import HTML.Styles.Bootstrap3
+import HTML.Styles.Bootstrap4
 import Time
 import System.Spicey
 import Recipes
@@ -11,7 +11,7 @@ import Recipes
 --- This view is used in a row of a table of all entities.
 categoryToListView :: [String] -> Category -> [[HtmlExp]]
 categoryToListView parcatids cat =
-  [[hrefInfoBlock
+  [[hrefInfoSmBlock
      (showControllerURL "Category" ("list":parcatids++[showCategoryKey cat]))
      [stringToHtml (categoryName cat)]]]
 
@@ -44,7 +44,7 @@ categoryLabelList =
 --- This view is used in a row of a table of all entities.
 keywordToListView :: Keyword -> [[HtmlExp]]
 keywordToListView keyword =
-  [[hrefInfoBlock
+  [[hrefPrimBadge
       (showControllerURL "Keyword" ["show",showKeywordKey keyword])
       [stringToHtml (keywordName keyword)]]]
 
@@ -71,14 +71,14 @@ keywordLabelList =
 --- This view is used in a row of a table of all entities.
 recipeToListView :: [String] -> Recipe -> [[HtmlExp]]
 recipeToListView parcatids recipe =
-  [[hrefInfoBlock
+  [[hrefInfoSmBlock
       (showControllerURL "Recipe" ("show": showRecipeKey recipe : parcatids))
       [stringToHtml (recipeName recipe)]]]
 
 --- The list view of the reference of a Recipe entity in HTML format.
 recipeRefToListView :: [String] -> Recipe -> [[HtmlExp]]
 recipeRefToListView parcatids recipe =
-  [[hrefInfoBlock
+  [[hrefInfoSmBlock
       (showControllerURL "Recipe" ("show": showRecipeKey recipe : parcatids))
       [stringToHtml (recipeReference recipe)]]]
 

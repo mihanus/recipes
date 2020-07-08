@@ -6,7 +6,7 @@ module View.RecipeDescription
 import Sort
 import Time
 import HTML.Base
-import HTML.Styles.Bootstrap3
+import HTML.Styles.Bootstrap4
 import HTML.WUI
 import Recipes
 import Config.EntityRoutes
@@ -72,7 +72,7 @@ showRecipeDescriptionView
   :: UserSessionInfo -> RecipeDescription -> Recipe -> [HtmlExp]
 showRecipeDescriptionView _ recipeDescription relatedRecipe =
   recipeDescriptionToDetailsView recipeDescription relatedRecipe
-   ++ [hrefButton "?RecipeDescription/list"
+   ++ [hrefPrimSmButton "?RecipeDescription/list"
         [htxt "back to RecipeDescription list"]]
 
 --- Compares two RecipeDescription entities. This order is used in the list view.
@@ -105,7 +105,9 @@ listRecipeDescriptionView sinfo recipeDescriptions =
       recipeDescriptionToListView recipeDescription
        ++ (if userLoginOfSession sinfo == Nothing
               then []
-              else [[hrefButton (showRoute recipeDescription) [htxt "show"]]
-                   ,[hrefButton (editRoute recipeDescription) [htxt "edit"]]
-                   ,[hrefButton (deleteRoute recipeDescription)
-                      [htxt "delete"]]])
+              else [[hrefPrimBadge (showRoute recipeDescription)
+                      [htxt "Show"]]
+                   ,[hrefPrimBadge (editRoute recipeDescription)
+                      [htxt "Edit"]]
+                   ,[hrefPrimBadge (deleteRoute recipeDescription)
+                      [htxt "Delete"]]])

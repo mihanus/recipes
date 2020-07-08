@@ -5,7 +5,7 @@
 module View.Search ( searchPageView ) where
 
 import HTML.Base
-import HTML.Styles.Bootstrap3
+import HTML.Styles.Bootstrap4
 
 import System.Spicey
 
@@ -16,8 +16,8 @@ searchPageView searchnamecontroller searchingrcontroller =
   [h1 [htxt $ "Suche in allen Rezepten"],
    par [htxt $ "Suche alle Rezepte mit dem Text: ", nbsp,
         textField scode "" `addAttr` ("size","20")],
-   par [primButton "Suche in allen Titeln" searchNameHandler,
-        primButton "Suche in den Zutaten" searchIngrHandler]]
+   par [primSmButton "Suche in allen Titeln" searchNameHandler,
+        primSmButton "Suche in den Zutaten" searchIngrHandler]]
  where
   scode free
 
