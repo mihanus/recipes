@@ -1,4 +1,4 @@
-# Generic Makefile for Spicey applications
+# Generic Makefile for Curry/Spicey applications
 
 SYSTEM ?= $(error Please specify Curry system with SYSTEM=pakcs or SYSTEM=kics2)
 
@@ -8,17 +8,16 @@ SYSTEM = $(system)
 endif
 
 # Definition of the root of the Curry system to be used:
-ifeq ($(SYSTEM),pakcs3)
+ifeq ($(SYSTEM),pakcs)
 # Generating with PAKCS:
-CURRYHOME=$(HOME)/pakcs3
-else ifeq ($(SYSTEM),kics3)
+CURRYHOME=/opt/pakcs
+else ifeq ($(SYSTEM),kics2)
 # Generating with KiCS2
-CURRYHOME=$(HOME)/kics3
-#CURRYHOME=/opt/kics2/kics2-3.0.0
+CURRYHOME=/opt/kics2
 else
 error:
 	echo "ERROR: invalid definition of variable SYSTEM!"
-	echo "Please use 'SYSTEM=pakcs3' or 'SYSTEM=kics3'
+	echo "Please use 'SYSTEM=pakcs' or 'SYSTEM=kics2'
 	exit 1
 endif
 
