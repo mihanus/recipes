@@ -4,12 +4,11 @@ module View.Keyword
   , keywordAlphabetView )
 where
 
-import List ( intercalate )
+import Data.List
+import Data.Time
 import HTML.Base
-import HTML.WUI
-import Time
-import Sort
 import HTML.Styles.Bootstrap4
+import HTML.WUI
 import Recipes
 import Config.EntityRoutes
 import System.SessionInfo
@@ -37,7 +36,7 @@ wKeywordType keyword =
 
 ------------------------------------------------------------------------------
 --- Supplies a view to show the details of a Keyword.
-showKeywordView :: UserSessionInfo -> Keyword -> [HtmlExp]
+showKeywordView :: UserSessionInfo -> Keyword -> [BaseHtml]
 showKeywordView _ keyword =
   keywordToDetailsView keyword
    ++ [hrefPrimSmButton "?Keyword/list" [htxt "back to Keyword list"]]
@@ -47,7 +46,7 @@ leqKeyword :: Keyword -> Keyword -> Bool
 leqKeyword x1 x2 = keywordName x1 <= keywordName x2
 
 --- Supplies a list view for a given list of Keyword entities.
-listKeywordView :: UserSessionInfo -> String -> [Keyword] -> [HtmlExp]
+listKeywordView :: UserSessionInfo -> String -> [Keyword] -> [BaseHtml]
 listKeywordView _ title keywords =
   [h1 [htxt title],
    par (intercalate [nbsp]
@@ -56,7 +55,7 @@ listKeywordView _ title keywords =
 
 --- Supplies a list view for a given list of characters to select keywords
 --- starting with this character.
-keywordAlphabetView :: [Char] -> [HtmlExp]
+keywordAlphabetView :: [Char] -> [BaseHtml]
 keywordAlphabetView cs =
   [h1 [htxt $ "Stichworte beginnend mit..."],
    par (intercalate [nbsp] (map charButton cs)),

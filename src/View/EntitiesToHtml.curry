@@ -1,15 +1,15 @@
 module View.EntitiesToHtml where
 
+import Data.Time
 import HTML.Base
 import HTML.WUI
 import HTML.Styles.Bootstrap4
-import Time
 import System.Spicey
 import Recipes
 
 --- The list view of a Category entity in HTML format.
 --- This view is used in a row of a table of all entities.
-categoryToListView :: [String] -> Category -> [[HtmlExp]]
+categoryToListView :: HTML h => [String] -> Category -> [[h]]
 categoryToListView parcatids cat =
   [[hrefInfoSmBlock
      (showControllerURL "Category" ("list":parcatids++[showCategoryKey cat]))
@@ -22,7 +22,7 @@ categoryToShortView category = categoryName category
 
 --- The detailed view of a Category entity in HTML format.
 --- It also takes associated entities for every associated entity type.
-categoryToDetailsView :: Category -> [Recipe] -> [HtmlExp]
+categoryToDetailsView :: HTML h => Category -> [Recipe] -> [h]
 categoryToDetailsView category recipes =
   [spTable
     (map (\(label,value) -> [label,value])
@@ -34,7 +34,7 @@ categoryToDetailsView category recipes =
       ,[htxt (unwords (map recipeToShortView recipes))]]
 
 --- The labels of a Category entity, as used in HTML tables.
-categoryLabelList :: [[HtmlExp]]
+categoryLabelList :: HTML h => [[h]]
 categoryLabelList =
   [[textstyle "spicey_label spicey_label_for_type_string" "Name"]
   ,[textstyle "spicey_label spicey_label_for_type_int" "Position"]
@@ -42,7 +42,7 @@ categoryLabelList =
 
 --- The list view of a Keyword entity in HTML format.
 --- This view is used in a row of a table of all entities.
-keywordToListView :: Keyword -> [[HtmlExp]]
+keywordToListView :: HTML h => Keyword -> [[h]]
 keywordToListView keyword =
   [[hrefPrimBadge
       (showControllerURL "Keyword" ["show",showKeywordKey keyword])
@@ -54,7 +54,7 @@ keywordToShortView :: Keyword -> String
 keywordToShortView keyword = keywordName keyword
 
 --- The detailed view of a Keyword entity in HTML format.
-keywordToDetailsView :: Keyword -> [HtmlExp]
+keywordToDetailsView :: HTML h => Keyword -> [h]
 keywordToDetailsView keyword =
   [spTable
     (map (\(label,value) -> [label,value])
@@ -63,20 +63,20 @@ keywordToDetailsView keyword =
     detailedView = [[stringToHtml (keywordName keyword)]]
 
 --- The labels of a Keyword entity, as used in HTML tables.
-keywordLabelList :: [[HtmlExp]]
+keywordLabelList :: HTML h => [[h]]
 keywordLabelList =
   [[textstyle "spicey_label spicey_label_for_type_string" "Name"]]
 
 --- The list view of a Recipe entity in HTML format.
 --- This view is used in a row of a table of all entities.
-recipeToListView :: [String] -> Recipe -> [[HtmlExp]]
+recipeToListView :: HTML h => [String] -> Recipe -> [[h]]
 recipeToListView parcatids recipe =
   [[hrefInfoSmBlock
       (showControllerURL "Recipe" ("show": showRecipeKey recipe : parcatids))
       [stringToHtml (recipeName recipe)]]]
 
 --- The list view of the reference of a Recipe entity in HTML format.
-recipeRefToListView :: [String] -> Recipe -> [[HtmlExp]]
+recipeRefToListView :: HTML h => [String] -> Recipe -> [[h]]
 recipeRefToListView parcatids recipe =
   [[hrefInfoSmBlock
       (showControllerURL "Recipe" ("show": showRecipeKey recipe : parcatids))
@@ -89,7 +89,7 @@ recipeToShortView recipe = recipeName recipe
 
 --- The detailed view of a Recipe entity in HTML format.
 --- It also takes associated entities for every associated entity type.
-recipeToDetailsView :: Recipe -> [Keyword] -> [HtmlExp]
+recipeToDetailsView :: HTML h => Recipe -> [Keyword] -> [h]
 recipeToDetailsView recipe keywords =
   [spTable
     (map (\(label,value) -> [label,value])
@@ -101,7 +101,7 @@ recipeToDetailsView recipe keywords =
       ,[htxt (unwords (map keywordToShortView keywords))]]
 
 --- The labels of a Recipe entity, as used in HTML tables.
-recipeLabelList :: [[HtmlExp]]
+recipeLabelList :: HTML h => [[h]]
 recipeLabelList =
   [[textstyle "spicey_label spicey_label_for_type_string" "Name"]
   ,[textstyle "spicey_label spicey_label_for_type_string" "Reference"]
@@ -109,7 +109,7 @@ recipeLabelList =
 
 --- The list view of a RecipeDescription entity in HTML format.
 --- This view is used in a row of a table of all entities.
-recipeDescriptionToListView :: RecipeDescription -> [[HtmlExp]]
+recipeDescriptionToListView :: HTML h => RecipeDescription -> [[h]]
 recipeDescriptionToListView recipeDescription =
   [[stringToHtml (recipeDescriptionServings recipeDescription)]
   ,[stringToHtml (recipeDescriptionIngredients recipeDescription)]
@@ -125,7 +125,7 @@ recipeDescriptionToShortView recipeDescription =
 
 --- The detailed view of a RecipeDescription entity in HTML format.
 --- It also takes associated entities for every associated entity type.
-recipeDescriptionToDetailsView :: RecipeDescription -> Recipe -> [HtmlExp]
+recipeDescriptionToDetailsView :: HTML h => RecipeDescription -> Recipe -> [h]
 recipeDescriptionToDetailsView recipeDescription relatedRecipe =
   [spTable
     (map (\(label,value) -> [label,value])
@@ -140,7 +140,7 @@ recipeDescriptionToDetailsView recipeDescription relatedRecipe =
       ,[htxt (recipeToShortView relatedRecipe)]]
 
 --- The labels of a RecipeDescription entity, as used in HTML tables.
-recipeDescriptionLabelList :: [[HtmlExp]]
+recipeDescriptionLabelList :: HTML h => [[h]]
 recipeDescriptionLabelList =
   [[textstyle "spicey_label spicey_label_for_type_string" "Portionen"]
   ,[textstyle "spicey_label spicey_label_for_type_string" "Zutaten"]

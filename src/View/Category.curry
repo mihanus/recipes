@@ -3,10 +3,8 @@ module View.Category
   , showCategoryView, listCategoryView
   ) where
 
-import List       ( init )
-import Sort
-import Time
-
+import Data.List
+import Data.Time
 import HTML.Base
 import HTML.WUI
 import HTML.Styles.Bootstrap4
@@ -48,7 +46,7 @@ wCategoryType category =
 
 ------------------------------------------------------------------------------
 --- Supplies a view to show the details of a Category.
-showCategoryView :: UserSessionInfo -> Category -> [Recipe] -> [HtmlExp]
+showCategoryView :: UserSessionInfo -> Category -> [Recipe] -> [BaseHtml]
 showCategoryView _ category recipes =
   categoryToDetailsView category recipes
    ++ [hrefPrimSmButton "?Category/list" [htxt "back to Category list"]]
@@ -65,7 +63,7 @@ leqCategory x1 x2 = categoryPosition x1 <= categoryPosition x2
 --- contained in this category.
 listCategoryView
  :: UserSessionInfo -> [(String,String)] -> Category -> [Category] -> [Recipe]
-  -> [HtmlExp]
+  -> [BaseHtml]
 listCategoryView sinfo parentcats currentcat categorys recipes =
   [h4 (concatMap
          (\ (n,(cname,a)) ->
@@ -93,7 +91,7 @@ listCategoryView sinfo parentcats currentcat categorys recipes =
              ]]
    else []
   where
-    listCategory :: Category -> [[HtmlExp]]
+    listCategory :: Category -> [[BaseHtml]]
     listCategory category =
       categoryToListView (map snd parentcats) category
        ++ (if isAdminSession sinfo

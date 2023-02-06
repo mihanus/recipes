@@ -3,8 +3,8 @@ module View.RecipeDescription
   , wRecipeDescriptionType
   , showRecipeDescriptionView, listRecipeDescriptionView ) where
 
-import Sort
-import Time
+import Data.List
+import Data.Time
 import HTML.Base
 import HTML.Styles.Bootstrap4
 import HTML.WUI
@@ -69,7 +69,7 @@ wRecipeDescriptionType recipeDescription recipe recipeList =
 ------------------------------------------------------------------------------
 --- Supplies a view to show the details of a RecipeDescription.
 showRecipeDescriptionView
-  :: UserSessionInfo -> RecipeDescription -> Recipe -> [HtmlExp]
+  :: UserSessionInfo -> RecipeDescription -> Recipe -> [BaseHtml]
 showRecipeDescriptionView _ recipeDescription relatedRecipe =
   recipeDescriptionToDetailsView recipeDescription relatedRecipe
    ++ [hrefPrimSmButton "?RecipeDescription/list"
@@ -93,13 +93,13 @@ leqRecipeDescription x1 x2 =
 --- Shows also show/edit/delete buttons if the user is logged in.
 --- The arguments are the session info and the list of RecipeDescription entities.
 listRecipeDescriptionView
-  :: UserSessionInfo -> [RecipeDescription] -> [HtmlExp]
+  :: UserSessionInfo -> [RecipeDescription] -> [BaseHtml]
 listRecipeDescriptionView sinfo recipeDescriptions =
   [h1 [htxt "RecipeDescription list"]
   ,spTable
     ([take 5 recipeDescriptionLabelList]
       ++ map listRecipeDescription
-          (mergeSortBy leqRecipeDescription recipeDescriptions))]
+          (sortBy leqRecipeDescription recipeDescriptions))]
   where
     listRecipeDescription recipeDescription =
       recipeDescriptionToListView recipeDescription

@@ -7,7 +7,7 @@
 
 module Recipes where
 
-import qualified Time
+import qualified Data.Time
 import qualified Database.CDBI.ER
 import qualified Database.CDBI.Criteria
 import qualified Database.CDBI.Connection
@@ -1005,6 +1005,23 @@ updateRecipeDescription
   :: RecipeDescription -> Database.CDBI.Connection.DBAction ()
 updateRecipeDescription =
   Database.CDBI.ER.updateEntry recipeDescription_CDBI_Description
+
+--- Generates a new database (name provided as the parameter) and
+--- creates its schema.
+createNewDB :: String -> IO ()
+createNewDB dbfile =
+  do conn <- Database.CDBI.Connection.connectSQLite dbfile
+     Database.CDBI.Connection.writeConnection cstr conn
+     Database.CDBI.Connection.disconnect conn
+  where
+    cstr =
+      unlines
+       ["create table 'Tagging'('RecipeTaggingKey' int REFERENCES 'Recipe'(Key) not null ,'KeywordTaggingKey' int REFERENCES 'Keyword'(Key) not null, primary key ('RecipeTaggingKey', 'KeywordTaggingKey'));"
+       ,"create table 'RecipeCategory'('CategoryRecipeCategoryKey' int REFERENCES 'Category'(Key) not null ,'RecipeRecipeCategoryKey' int REFERENCES 'Recipe'(Key) not null, primary key ('CategoryRecipeCategoryKey', 'RecipeRecipeCategoryKey'));"
+       ,"create table 'Category'('Key' integer primary key ,'Name' string not null ,'Position' not null ,'CategoryParentCategoryKey' int REFERENCES 'Category'(Key));"
+       ,"create table 'Keyword'('Key' integer primary key ,'Name' string unique not null);"
+       ,"create table 'Recipe'('Key' integer primary key ,'Name' string not null ,'Reference' string);"
+       ,"create table 'RecipeDescription'('Key' integer primary key ,'Servings' string not null ,'Ingredients' string not null ,'Directions' string not null ,'PrepTime' string ,'CookTime' string ,'RecipeRecDescKey' int REFERENCES 'Recipe'(Key) unique not null);"]
 
 --- Saves complete database as term files into an existing directory
 --- provided as a parameter.

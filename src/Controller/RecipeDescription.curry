@@ -1,9 +1,6 @@
 module Controller.RecipeDescription ( mainRecipeDescriptionController ) where
 
-import Global
-import Maybe
-import Time
-
+import Data.Time
 import HTML.Base
 import HTML.Session
 import HTML.WUI
@@ -19,6 +16,8 @@ import System.AuthorizedActions
 import System.Spicey
 import View.EntitiesToHtml
 import Database.CDBI.Connection
+
+import System.PreludeHelpers
 
 --- Choose the controller for a RecipeDescription entity according to the URL parameter.
 mainRecipeDescriptionController :: Controller
@@ -41,33 +40,31 @@ type NewRecipeDescription = (String,String,String,String,String,Recipe)
 --- Shows a form to create a new RecipeDescription entity.
 newRecipeDescriptionController :: Controller
 newRecipeDescriptionController =
-  checkAuthorization (categoryOperationAllowed NewEntity) $ \_ -> do
+  checkAuthorization (categoryOperationAllowed NewEntity) $ \sinfo -> do
     allRecipes <- runQ queryAllRecipes
-    setParWuiStore wuiNewRecipeDescriptionStore allRecipes
+    setParWuiStore newRecipeDescriptionStore (sinfo,allRecipes)
                    ("", "", "", "", "", head allRecipes)
-    return [formExp newRecipeDescriptionForm]
+    return [formElem newRecipeDescriptionForm]
 
 --- Supplies a WUI form to create a new RecipeDescription entity.
 --- The fields of the entity have some default values.
 newRecipeDescriptionForm ::
-  HtmlFormDef ([Recipe], WuiStore NewRecipeDescription)
+  HtmlFormDef ((UserSessionInfo, [Recipe]), WuiStore NewRecipeDescription)
 newRecipeDescriptionForm =
   pwui2FormDef "Controller.RecipeDescription.newRecipeDescriptionForm"
-    wuiNewRecipeDescriptionStore
-    (\possibleRecipes -> wRecipeDescription possibleRecipes)
+    newRecipeDescriptionStore
+    (\(_,possibleRecipes) -> wRecipeDescription possibleRecipes)
     (\_ entity -> transactionController
                     (runT (createRecipeDescriptionT entity))
                     (nextInProcessOr (redirectController "?RecipeDescription/list")
                       Nothing))
-    (renderWUI "Create new RecipeDescription" "Create"
-        "?RecipeDescription/list")
+    (\(sinfo,_) -> renderWUI sinfo "Create new RecipeDescription" "Create"
+        "?RecipeDescription/list" ())
 
----- The data stored for executing the WUI form.
-wuiNewRecipeDescriptionStore ::
-  Global (SessionStore ([Recipe], WuiStore NewRecipeDescription))
-wuiNewRecipeDescriptionStore =
-  global emptySessionStore
-         (Persistent (inDataDir "wuiNewRecipeDescriptionStore"))
+--- The data stored for executing the "new entity" WUI form.
+newRecipeDescriptionStore
+  :: SessionStore ((UserSessionInfo,[Recipe]),WuiStore NewRecipeDescription)
+newRecipeDescriptionStore = sessionStore "newRecipeDescriptionStore"
 
 --- Transaction to persist a new RecipeDescription entity to the database.
 createRecipeDescriptionT :: NewRecipeDescription -> DBAction ()
@@ -77,44 +74,43 @@ createRecipeDescriptionT
    prepTime
    cookTime
    (recipeKey recipe)
-   >+= (\_ -> return ())
+   >>= (\_ -> return ())
 
 ------------------------------------------------------------------------------
 --- Shows a form to edit the given RecipeDescription entity.
 editRecipeDescriptionController :: RecipeDescription -> Controller
 editRecipeDescriptionController recdescr =
   checkAuthorization (recipeDescriptionOperationAllowed (UpdateEntity recdescr))
-   $ \_ -> do
+   $ \sinfo -> do
       allRecipes <- runQ queryAllRecipes
       recDescRecipe <- runJustT (getRecDescRecipe recdescr)
-      setParWuiStore wuiEditRecipeDescriptionStore
-                     (recdescr, recDescRecipe, allRecipes)
+      setParWuiStore editRecipeDescriptionStore
+                     (sinfo,recdescr, recDescRecipe, allRecipes)
                      recdescr
-      return [formExp editRecipeDescriptionForm]
+      return [formElem editRecipeDescriptionForm]
 
 --- Supplies a WUI form to edit a given RecipeDescription entity.
 --- The fields of the entity have some default values.
 editRecipeDescriptionForm ::
-  HtmlFormDef ((RecipeDescription, Recipe, [Recipe]),
+  HtmlFormDef ((UserSessionInfo, RecipeDescription, Recipe, [Recipe]),
                WuiStore RecipeDescription)
 editRecipeDescriptionForm =
   pwui2FormDef "Controller.RecipeDescription.editRecipeDescriptionForm"
-    wuiEditRecipeDescriptionStore
-    (\ (recipeDescription, relatedRecipe, possibleRecipes) ->
+    editRecipeDescriptionStore
+    (\ (_, recipeDescription, relatedRecipe, possibleRecipes) ->
        wRecipeDescriptionType recipeDescription relatedRecipe possibleRecipes)
     (\_ entity -> transactionController (runT (updateRecipeDescriptionT entity))
                     (nextInProcessOr (redirectController "?RecipeDescription/list")
                       Nothing))
-    (renderWUI "Edit RecipeDescription" "Change"
-                  "?RecipeDescription/list")
+    (\(sinfo,_,_,_) ->
+       renderWUI sinfo "Edit RecipeDescription" "Change"
+                  "?RecipeDescription/list" ())
 
----- The data stored for executing the WUI form.
-wuiEditRecipeDescriptionStore ::
-   Global (SessionStore ((RecipeDescription, Recipe, [Recipe]),
-                         WuiStore RecipeDescription))
-wuiEditRecipeDescriptionStore =
-  global emptySessionStore
-         (Persistent (inDataDir "wuiEditRecipeDescriptionStore"))
+--- The data stored for executing the edit WUI form.
+editRecipeDescriptionStore
+  :: SessionStore ((UserSessionInfo,RecipeDescription,Recipe,[Recipe])
+                  ,WuiStore RecipeDescription)
+editRecipeDescriptionStore = sessionStore "editRecipeDescriptionStore"
 
 --- Transaction to persist modifications of a given RecipeDescription entity
 --- to the database.
@@ -128,8 +124,8 @@ updateRecipeDescriptionT recipeDescription =
 deleteRecipeDescriptionController :: RecipeDescription -> Controller
 deleteRecipeDescriptionController recipeDescription =
   checkAuthorization
-   (recipeDescriptionOperationAllowed (DeleteEntity recipeDescription)) $ \_ ->
-     confirmDeletionPage
+   (recipeDescriptionOperationAllowed (DeleteEntity recipeDescription)) $ \sinfo ->
+     confirmDeletionPage sinfo
        (concat ["Really delete entity \""
                ,recipeDescriptionToShortView recipeDescription
                 ,"\"?"])

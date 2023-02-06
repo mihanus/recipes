@@ -8,16 +8,17 @@ SYSTEM = $(system)
 endif
 
 # Definition of the root of the Curry system to be used:
-ifeq ($(SYSTEM),pakcs)
+ifeq ($(SYSTEM),pakcs3)
 # Generating with PAKCS:
-CURRYHOME=$(HOME)/pakcs
-else ifeq ($(SYSTEM),kics2)
+CURRYHOME=$(HOME)/pakcs3
+else ifeq ($(SYSTEM),kics3)
 # Generating with KiCS2
-CURRYHOME=/opt/kics2/kics2
+CURRYHOME=$(HOME)/kics3
+#CURRYHOME=/opt/kics2/kics2-3.0.0
 else
 error:
 	echo "ERROR: invalid definition of variable SYSTEM!"
-	echo "Please use 'SYSTEM=pakcs' or 'SYSTEM=kics2'
+	echo "Please use 'SYSTEM=pakcs3' or 'SYSTEM=kics3'
 	exit 1
 endif
 
@@ -88,9 +89,9 @@ deploy: checkdeploy
 	cp -p upload-handler.cgi $(WEBSERVERDIR)
 	chmod -R go+rX $(WEBSERVERDIR)
 	# recreate directory for storing local session data:
-	#/bin/rm -r $(WEBSERVERDIR)/data
-	mkdir -p $(WEBSERVERDIR)/data
-	chmod 700 $(WEBSERVERDIR)/data
+	#/bin/rm -r $(WEBSERVERDIR)/sessiondata
+	mkdir -p $(WEBSERVERDIR)/sessiondata
+	chmod 700 $(WEBSERVERDIR)/sessiondata
 	mkdir -p $(WEBSERVERDIR)/uploads
 	chmod 700 $(WEBSERVERDIR)/uploads
 

@@ -2,12 +2,8 @@ module Controller.Keyword
   ( mainKeywordController, newKeywordForm
   ) where
 
-import Global
-import List
-import Maybe
-import Sort
-import Time
-
+import Data.List
+import Data.Time
 import HTML.Base
 import HTML.Session
 import HTML.WUI
@@ -49,54 +45,54 @@ type NewKeyword = String
 --- Shows a form to create a new Keyword entity.
 newKeywordController :: Controller
 newKeywordController =
-  checkAuthorization (keywordOperationAllowed NewEntity) $ \_ -> do
-    setParWuiStore wuiNewKeywordStore () ""
-    return [formExp newKeywordForm]
+  checkAuthorization (keywordOperationAllowed NewEntity)
+   $ (\sinfo ->
+     do setParWuiStore newKeywordStore sinfo ""
+        return [formElem newKeywordForm])
 
---- Supplies a WUI form to create a new Keyword entity.
---- The fields of the entity have some default values.
-newKeywordForm :: HtmlFormDef ((), WuiStore NewKeyword)
+--- A WUI form to create a new Keyword entity.
+--- The default values for the fields are stored in 'newKeywordStore'.
+newKeywordForm :: HtmlFormDef (UserSessionInfo,WuiStore NewKeyword)
 newKeywordForm =
   pwui2FormDef "Controller.Keyword.newKeywordForm"
-    wuiNewKeywordStore
+    newKeywordStore
     (\_ -> wKeyword)
     (\_ entity -> transactionController (runT (createKeywordT entity))
                     (nextInProcessOr (redirectController "?Keyword/list") Nothing))
-    (renderWUI "Neues Stichwort" "Speichern" "?Keyword/list")
+    (\sinfo ->
+      renderWUI sinfo "Neues Stichwort" "Speichern" "?Keyword/list" ())
 
----- The data stored for executing the WUI form.
-wuiNewKeywordStore :: Global (SessionStore ((), WuiStore NewKeyword))
-wuiNewKeywordStore =
-  global emptySessionStore (Persistent (inDataDir "wuiNewKeywordStore"))
+--- The data stored for executing the "new entity" WUI form.
+newKeywordStore :: SessionStore (UserSessionInfo,WuiStore NewKeyword)
+newKeywordStore = sessionStore "newKeywordStore"
 
 --- Transaction to persist a new Keyword entity to the database.
 createKeywordT :: String -> DBAction ()
-createKeywordT name = newKeyword name >+= (\_ -> return ())
+createKeywordT name = newKeyword name >>= (\_ -> return ())
 
 ------------------------------------------------------------------------------
 --- Shows a form to edit the given Keyword entity.
 editKeywordController :: Keyword -> Controller
 editKeywordController keywordToEdit =
   checkAuthorization (keywordOperationAllowed (UpdateEntity keywordToEdit))
-   $ \_ -> do
-      setParWuiStore wuiEditKeywordStore keywordToEdit keywordToEdit
-      return [formExp editKeywordForm]
+   $ \sinfo -> do
+      setParWuiStore editKeywordStore (sinfo,keywordToEdit) keywordToEdit
+      return [formElem editKeywordForm]
 
---- Supplies a WUI form to edit a given Keyword entity.
---- The fields of the entity have some default values.
-editKeywordForm :: HtmlFormDef (Keyword, WuiStore Keyword)
+--- A WUI form to edit a Keyword entity.
+--- The default values for the fields are stored in 'editKeywordStore'.
+editKeywordForm :: HtmlFormDef ((UserSessionInfo,Keyword),WuiStore Keyword)
 editKeywordForm =
   pwui2FormDef "Controller.Keyword.editKeywordForm"
-    wuiEditKeywordStore
-    (\keyword -> wKeywordType keyword)
+    editKeywordStore
+    (\(_,keyword) -> wKeywordType keyword)
     (\_ entity -> transactionController (runT (updateKeywordT entity))
                     (nextInProcessOr (redirectController "?Keyword/list") Nothing))
-    (renderWUI "Stichwort ändern" "Speichern" "?Keyword/list")
+    (\(sinfo,_) -> renderWUI sinfo "Stichwort ändern" "Speichern" "?Keyword/list" ())
 
----- The data stored for executing the WUI form.
-wuiEditKeywordStore :: Global (SessionStore (Keyword, WuiStore Keyword))
-wuiEditKeywordStore =
-  global emptySessionStore (Persistent (inDataDir "wuiEditKeywordStore"))
+--- The data stored for executing the edit WUI form.
+editKeywordStore :: SessionStore ((UserSessionInfo,Keyword),WuiStore Keyword)
+editKeywordStore = sessionStore "editKeywordStore"
 
 --- Transaction to persist modifications of a given Keyword entity
 --- to the database.
@@ -108,8 +104,8 @@ updateKeywordT keyword = updateKeyword keyword
 --- and proceeds with the list controller.
 deleteKeywordController :: Keyword -> Controller
 deleteKeywordController keyword =
-  checkAuthorization (keywordOperationAllowed (DeleteEntity keyword)) $ \_ ->
-     confirmDeletionPage
+  checkAuthorization (keywordOperationAllowed (DeleteEntity keyword)) $ \sinfo ->
+     confirmDeletionPage sinfo
        (concat
           ["Stichwort \"",keywordToShortView keyword,"\" wirklich löschen?"])
 
@@ -135,7 +131,7 @@ listKeywordController =
               (map head
                    (group
                       (map (\s -> if null s then ' ' else head s)
-                           (Sort.sort (map keywordName kws))))))
+                           (sort (map keywordName kws))))))
 
 --- Lists all keywords.
 listAllKeywordController :: Controller

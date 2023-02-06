@@ -8,11 +8,10 @@ module System.Processes
   , nextControllerRefInProcessOrForUrl
   ) where
 
-import Global
-import Maybe
+import Data.Maybe
 import ReadShowTerm
 
-import Control.AllSolutions ( getOneValue )
+import Control.AllValues ( getOneValue )
 import HTML.Base
 import HTML.Session
 
@@ -41,26 +40,26 @@ isFinalState sid (ProcSpec _ _ trans) = do
 
 --------------------------------------------------------------------------
 -- The current processes are stored in a persistent entity.
-currentProcess :: Global (SessionStore String)
-currentProcess = global emptySessionStore Temporary
+currentProcess :: SessionStore String
+currentProcess = sessionStore "currentProcess"
 
 --- Returns the process state stored in the user session.
-getCurrentProcess :: IO (Maybe _)
+getCurrentProcess :: Read a => IO (Maybe a)
 getCurrentProcess = do
-  curProc <- getSessionMaybeData currentProcess
+  curProc <- fromFormReader $ getSessionMaybeData currentProcess
   case curProc of
-    Just sids -> return $ Just (readQTerm sids)
+    Just sids -> return $ Just (read sids)
     Nothing -> return Nothing
 
 --- Is the current user session in a process interaction?
 isInProcess :: IO Bool
-isInProcess =
+isInProcess = fromFormReader $
   getSessionMaybeData currentProcess >>= return . maybe False (const True)
 
 --- Saves the state of a process, i.e., a node in the process graph,
 --- in the user session.
-saveCurrentProcess :: _ -> IO ()
-saveCurrentProcess sid = putSessionData currentProcess (showQTerm sid)
+saveCurrentProcess :: Show a => a -> IO ()
+saveCurrentProcess sid = putSessionData currentProcess (show sid)
 
 --- Deletes the process in the user session.
 removeCurrentProcess :: IO ()
@@ -68,7 +67,7 @@ removeCurrentProcess = removeSessionData currentProcess
 
 --- Starts a new process with a given name. In the next step, the
 --- controller of the start state of the process is executed.
-startProcess :: String -> IO [HtmlExp]
+startProcess :: String -> IO [BaseHtml]
 startProcess pname =
   maybe (return [htxt $ "startProcess: process not found: " ++ pname])
         (\state -> do saveCurrentProcess state
@@ -83,13 +82,13 @@ advanceInProcess :: Maybe ControllerResult -> IO ()
 advanceInProcess ctrlinfo = do
   curprocess <- getCurrentProcess
   case curprocess of
-    Nothing  -> done -- no active process, do nothing
+    Nothing  -> return () -- no active process, do nothing
     Just sid -> do
      let (ProcSpec _ _ trans) = availableProcesses
      nextsid <- getOneValue (trans sid ctrlinfo)
      case nextsid of
         Just sid' -> saveCurrentProcess sid'
-        Nothing   -> done -- this case should not occur in a good spec.
+        Nothing   -> return () -- this case should not occur in a good spec.
 
 --- Returns the next controller in the current process or,
 --- if there is no current process, the controller associated to the given URL.
@@ -101,5 +100,5 @@ nextControllerRefInProcessOrForUrl url = do
     Nothing  -> getControllerReference url -- no current process
     Just sid -> do isfinal <- isFinalState sid availableProcesses
                    if isfinal then removeCurrentProcess
-                              else done
+                              else return ()
                    return (Just (getControllerForState sid availableProcesses))

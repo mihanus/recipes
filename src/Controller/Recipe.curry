@@ -3,14 +3,14 @@ module Controller.Recipe
   , createRecipeForm, createRecipeDescForm, editRecipeForm, addRecipeForm
   ) where
 
-import Directory ( doesFileExist, renameFile )
-import FilePath  ( (</>) )
-import Global
-import List      ( delete, intersect, intersperse )
-import Maybe
-import Sort      ( sortBy )
-import System    ( system )
-import Time
+import System.PreludeHelpers
+
+import Data.List        ( delete, intersect, intersperse, sortBy )
+import Data.Maybe
+import Data.Time
+import System.Directory ( doesFileExist, renameFile )
+import System.FilePath  ( (</>) )
+import System.Process   ( system )
 
 import Config.EntityRoutes
 import Config.Storage
@@ -57,34 +57,35 @@ mainRecipeController = do
 --- Shows a form to edit the given Category entity.
 addRecipeController :: String -> Controller
 addRecipeController catkey =
-  checkAuthorization (recipeOperationAllowed NewEntity) $ \_ -> do
+  checkAuthorization (recipeOperationAllowed NewEntity) $ \sinfo -> do
     cat <- runJustT $ stringcatkey2cat catkey
     allRecipes <- runQ queryAllRecipes >>= return . sortBy leqRecipe
     listurl <- getCurrentCatsURL
-    setParWuiStore addRecipeStore (cat, allRecipes, listurl) (head allRecipes)
-    return [formExp addRecipeForm]
+    setParWuiStore addRecipeStore (sinfo, cat, allRecipes, listurl)
+                   (head allRecipes)
+    return [formElem addRecipeForm]
 
 --- Supplies a WUI form to edit a given Category entity.
 --- The fields of the entity have some default values.
-addRecipeForm :: HtmlFormDef ((Category,[Recipe],String), WuiStore Recipe)
+addRecipeForm ::
+  HtmlFormDef ((UserSessionInfo,Category,[Recipe],String), WuiStore Recipe)
 addRecipeForm =
   pwui2FormDef "Controller.Recipe.addRecipeForm"
     addRecipeStore
-    (\ (_,allrecipes,_) -> wSelect recipeToShortView allrecipes)
-    (\ (cat,_,listurl) entity ->
+    (\ (_,_,allrecipes,_) -> wSelect recipeToShortView allrecipes)
+    (\ (_,cat,_,listurl) entity ->
        checkAuthorization (recipeOperationAllowed NewEntity) $ \_ ->
          transactionController (runT (addGivenRecipeT cat entity))
            (nextInProcessOr (redirectController listurl) Nothing))
-    (\ (_,_,listurl) ->
-         renderWUI "Rezept in Kategorie hinzufügen" "Hinzufügen" listurl ())
+    (\ (sinfo,_,_,listurl) ->
+       renderWUI sinfo "Rezept in Kategorie hinzufügen" "Hinzufügen" listurl ())
  where
   addGivenRecipeT cat rec = newRecipeCategory (categoryKey cat) (recipeKey rec)
 
 ---- The data stored for executing the WUI form.
 addRecipeStore ::
-  Global (SessionStore ((Category,[Recipe],String), WuiStore Recipe))
-addRecipeStore =
-  global emptySessionStore (Persistent (inDataDir "addRecipeStore"))
+  SessionStore ((UserSessionInfo,Category,[Recipe],String), WuiStore Recipe)
+addRecipeStore = sessionStore "addRecipeStore"
 
 ------------------------------------------------------------------------------
 --- Shows a form to create a new Recipe entity in a category.
@@ -95,7 +96,7 @@ newRecipeController catkey =
     cat <- runJustT $ stringcatkey2cat catkey
     listurl <- getCurrentCatsURL
     setParWuiStore createRecipeStore (sinfo,cat,listurl) ("","","")
-    return [formExp createRecipeForm]
+    return [formElem createRecipeForm]
 
 explainPDF :: String
 explainPDF = unlines
@@ -118,13 +119,12 @@ createRecipeForm = pwui2FormDef "Controller.Recipe.createRecipeForm"
        checkAuthorization (recipeOperationAllowed NewEntity) $ \_ ->
           transactionController (runT (createRecipeT cat entity))
              (nextInProcessOr (redirectController listurl) Nothing))
-    (\ (_,_,listurl) -> renderWUI "Neue Rezeptreferenz" "Speichern" listurl ())
+    (\ (sinfo,_,listurl) ->
+        renderWUI sinfo "Neue Rezeptreferenz" "Speichern" listurl ())
 
 ---- The data stored for executing the WUI form.
-createRecipeStore ::
-  Global (SessionStore ((UserSessionInfo,Category,String), WuiStore NewRecipe))
-createRecipeStore =
-  global emptySessionStore (Persistent (inDataDir "createRecipeStore"))
+createRecipeStore :: SessionStore ((UserSessionInfo,Category,String), WuiStore NewRecipe)
+createRecipeStore = sessionStore "createRecipeStore"
 
 --- Transaction to persist a new Recipe entity to the database.
 createRecipeT :: Category -> NewRecipe -> DBAction ()
@@ -144,7 +144,7 @@ newRecipeDescController catkey =
     listurl <- getCurrentCatsURL
     setParWuiStore createRecipeDescStore
                    (sinfo,cat,listurl) ("","","","","","","","")
-    return [formExp createRecipeDescForm]
+    return [formElem createRecipeDescForm]
 
 type NewRecipeDesc = (String,String,String,String,String,String,String,String)
 
@@ -159,14 +159,12 @@ createRecipeDescForm = pwui2FormDef "Controller.Recipe.createRecipeDescForm"
      checkAuthorization (recipeOperationAllowed NewEntity) $ \_ ->
        transactionController (runT (createRecipeDescT cat entity))
          (nextInProcessOr (redirectController listurl) Nothing))
-    (\ (_,_,listurl) -> renderWUI "Neues Rezept" "Speichern" listurl ())
+    (\ (sinfo,_,listurl) -> renderWUI sinfo "Neues Rezept" "Speichern" listurl ())
 
 ---- The data stored for executing the WUI form.
 createRecipeDescStore ::
-  Global (SessionStore ((UserSessionInfo,Category,String),
-                        WuiStore NewRecipeDesc))
-createRecipeDescStore =
-  global emptySessionStore (Persistent (inDataDir "createRecipeDescStore"))
+  SessionStore ((UserSessionInfo,Category,String), WuiStore NewRecipeDesc)
+createRecipeDescStore = sessionStore "createRecipeDescStore"
 
 --- Transaction to persist a new Recipe entity to the database.
 createRecipeDescT :: Category -> NewRecipeDesc -> DBAction ()
@@ -201,7 +199,7 @@ editRecipeController parentcatkeys recipe =
     setParWuiStore editRecipeStore
       (sinfo, recipe, mbrecdesc, parentcatkeys, listurl)
       (recipe, keywords2string recipekeywords, mbrecdesc)
-    return [formExp editRecipeForm]
+    return [formElem editRecipeForm]
 
 --- The form definition to edit an existing Person entity
 --- containing the controller to update the entity.
@@ -217,15 +215,14 @@ editRecipeForm = pwui2FormDef "Controller.Recipe.editRecipeForm"
        (nextInProcessOr
          (runJustT (getRecipe (recipeKey recipe)) >>=
           showRecipeController parentcatkeys) Nothing))
-    (\ (_,_,_,_,listurl) -> renderWUI "Rezept ändern" "Speichern" listurl ())
+    (\ (sinfo,_,_,_,listurl) -> renderWUI sinfo "Rezept ändern" "Speichern" listurl ())
 
 --- The data stored for executing the WUI form.
 editRecipeStore ::
-  Global (SessionStore ((UserSessionInfo,
-                         Recipe,Maybe RecipeDescription,[String],String),
-                        WuiStore (Recipe,String,Maybe RecipeDescription)))
-editRecipeStore =
-  global emptySessionStore (Persistent (inDataDir "editRecipeStore"))
+  SessionStore ((UserSessionInfo,
+                 Recipe,Maybe RecipeDescription,[String],String),
+                WuiStore (Recipe,String,Maybe RecipeDescription))
+editRecipeStore = sessionStore "editRecipeStore"
 
 --- Transaction to persist modifications of a given Recipe entity
 --- to the database.
@@ -251,8 +248,8 @@ updateKeywords oldkeywords newkeywords recipe = do
 --- and proceeds with the list controller.
 deleteRecipeController :: Maybe String -> Recipe -> Controller
 deleteRecipeController mbcatkey recipe =
-  checkAuthorization (recipeOperationAllowed (DeleteEntity recipe)) $ \_ ->
-    confirmDeletionPage
+  checkAuthorization (recipeOperationAllowed (DeleteEntity recipe)) $ \sinfo ->
+    confirmDeletionPage sinfo
       (concat ["Rezept \"", recipeToShortView recipe, "\" ",
                maybe "wirklich" (\_ -> "in der Kategorie") mbcatkey,
                " löschen?"])

@@ -15,8 +15,7 @@ module System.SessionInfo
   , getCurrentCats, storeCurrentCats
   ) where
 
-import Global
-
+import HTML.Base    ( fromFormReader )
 import HTML.Session
 
 import Config.Storage ( inDataDir )
@@ -28,6 +27,7 @@ import Config.Storage ( inDataDir )
 --- The argument of the session data is `Nothing` if the user is not logged in.
 --- Otherwise, it is `Maybe ln` where `ln` is the login name of the user.
 data UserSessionInfo = SD [String] (Maybe String)
+  deriving (Read,Show)
 
 --- The initial (empty) session data
 emptySessionInfo :: UserSessionInfo
@@ -51,18 +51,17 @@ setUserCats catkeys (SD _ login) = SD catkeys login
 
 --------------------------------------------------------------------------
 --- Definition of the session state to store the login name (as a string).
-userSessionInfo :: Global (SessionStore UserSessionInfo)
-userSessionInfo =
-  global emptySessionStore (Persistent (inDataDir "userSessionInfo"))
+userSessionInfo :: SessionStore UserSessionInfo
+userSessionInfo = sessionStore "userSessionInfo"
 
 --- Gets the data of the current user session.
 getUserSessionInfo :: IO UserSessionInfo
 getUserSessionInfo =
-  getSessionData userSessionInfo emptySessionInfo
+  fromFormReader $ getSessionData userSessionInfo emptySessionInfo
 
 --- Updates the data of the current user session.
 updateUserSessionInfo :: (UserSessionInfo -> UserSessionInfo) -> IO ()
-updateUserSessionInfo = updateSessionData userSessionInfo emptySessionInfo
+updateUserSessionInfo = modifySessionData userSessionInfo emptySessionInfo
 
 --------------------------------------------------------------------------
 

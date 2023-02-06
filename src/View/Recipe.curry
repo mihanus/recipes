@@ -4,11 +4,9 @@ module View.Recipe
   , showRecipeView, listRecipeView
   , listRecipesOfKeyword, singleRecipeView, leqRecipe ) where
 
-import Char ( isSpace )
-import Global
-import List ( intersperse, isSuffixOf, last, split )
-import Sort
-import Time
+import Data.Char ( isSpace )
+import Data.List ( intersperse, isSuffixOf, last, sortBy, split )
+import Data.Time
 
 import Config.Storage
 import HTML.Base
@@ -122,7 +120,7 @@ wRecipeType recipe (Just recdesc) =
 
 --------------------------------------------------------------------------
 --- Supplies a view to show the details of a Recipe.
-showRecipeView :: UserSessionInfo -> Recipe -> [Keyword] -> [HtmlExp]
+showRecipeView :: UserSessionInfo -> Recipe -> [Keyword] -> [BaseHtml]
 showRecipeView _ recipe keywords =
   recipeToDetailsView recipe keywords
    ++ [hrefPrimSmButton "?Recipe/list" [htxt "back to Recipe list"]]
@@ -142,7 +140,7 @@ leqRecipeRef x1 x2 =
 --- Supplies a view for a given single Recipe entity.
 singleRecipeView :: UserSessionInfo -> [(Category,String)] -> Recipe
   -> [Keyword] -> Maybe RecipeDescription -> Maybe String -> Maybe String
-  -> [HtmlExp]
+  -> [BaseHtml]
 singleRecipeView sinfo parentcats recipe keywords mbrecdesc mbpic mbpdf =
   [h4 (concatMap
           (\ (n, (cat,a)) ->
@@ -186,7 +184,7 @@ singleRecipeView sinfo parentcats recipe keywords mbrecdesc mbpic mbpdf =
 
 -- Shows the reference of a recipe. If it contains the substring "<....pdf>",
 -- it will be shown as a reference to the `recipes_archives` directory.
-recipeReference2HTML :: String -> [HtmlExp]
+recipeReference2HTML :: String -> [BaseHtml]
 recipeReference2HTML ref =
   (htxt "in: ") :
   let (prefix,latxt) = break (=='<') ref
@@ -200,7 +198,7 @@ recipeReference2HTML ref =
                                  [htxt "PDF"]],
                       htxt ")", htxt (tail suffix)]
 
-showRecipeDescription :: Maybe RecipeDescription -> [HtmlExp]
+showRecipeDescription :: Maybe RecipeDescription -> [BaseHtml]
 showRecipeDescription Nothing = []
 showRecipeDescription (Just recdesc) =
   [h4 [htxt $ "Portionen: " ++ recipeDescriptionServings recdesc],
@@ -216,20 +214,20 @@ showRecipeDescription (Just recdesc) =
 
 -- Transforms a string into HTML paragraphs, where each
 -- blank line starts a new paragraph.
-linesToHtmlPars :: String -> [HtmlExp]
+linesToHtmlPars :: String -> [BaseHtml]
 linesToHtmlPars =
   map (\s -> par [htxt s]) . map unlines . split (all isSpace) . lines
 
 --- Supplies a list view for a given list of Recipe entities.
-listRecipeView :: UserSessionInfo -> String -> [Recipe] -> [HtmlExp]
+listRecipeView :: UserSessionInfo -> String -> [Recipe] -> [BaseHtml]
 listRecipeView _ title recipes =
   [h1 [htxt title]
   ,spTable (map listRecipe (sortBy leqRecipe recipes))]
-  where listRecipe :: Recipe -> [[HtmlExp]]
-        listRecipe recipe = recipeToListView [] recipe
+  where
+    listRecipe recipe = recipeToListView [] recipe
 
 --- Supplies a list view for a given list of recipes of a keyword.
-listRecipesOfKeyword :: UserSessionInfo -> Keyword -> [Recipe] -> [HtmlExp]
+listRecipesOfKeyword :: UserSessionInfo -> Keyword -> [Recipe] -> [BaseHtml]
 listRecipesOfKeyword sinfo keyword recipes =
   [h1 [htxt ("Rezepte mit Stichwort: " ++ keywordName keyword)]
   ,spTable (map (recipeToListView []) (sortBy leqRecipe recipes))] ++
@@ -241,7 +239,7 @@ listRecipesOfKeyword sinfo keyword recipes =
 
 --- Supplies a list view to show the references contained in
 --- a given list of Recipe entities.
-listRecipeRefView :: [Recipe] -> [HtmlExp]
+listRecipeRefView :: [Recipe] -> [BaseHtml]
 listRecipeRefView recipes =
   [h1 [htxt "Rezeptreferenzliste"]
   ,spTable (map listRecipe
@@ -249,5 +247,4 @@ listRecipeRefView recipes =
   where
    hasReference recipe = not (null (recipeReference recipe))
 
-   listRecipe :: Recipe -> [[HtmlExp]]
    listRecipe recipe = recipeRefToListView [] recipe

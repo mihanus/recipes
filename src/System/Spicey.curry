@@ -24,11 +24,10 @@ module System.Spicey (
   saveLastUrl, getLastUrl, getLastUrls, getCurrentCatsURL
   ) where
 
-import Char         ( isSpace, isDigit )
-import FilePath     ( (</>) )
-import Global
-import ReadShowTerm ( readsQTerm )
-import Time
+import Data.Char        ( isSpace, isDigit )
+
+import Data.Time
+import System.FilePath     ( (</>) )
 
 import Database.CDBI.Connection ( SQLResult )
 import HTML.Base
@@ -49,7 +48,7 @@ import System.SessionInfo
 -- here: a representation of a HTML page
 type Viewable = HtmlPage
 
-type ViewBlock = [HtmlExp]
+type ViewBlock = [BaseHtml]
 
 --- Controllers contains all logic and their result should be a Viewable.
 --- if the behavior of controller should depend on URL parameters
@@ -92,7 +91,7 @@ applyControllerOn (Just userkey) getuser usercontroller =
 --- A controller to redirect to an URL starting with "?"
 --- (see implementation of `getPage`).
 redirectController :: String -> Controller
-redirectController url = return [HtmlText url]
+redirectController url = return [htmlText url]
 
 nextController :: Controller -> _ -> IO HtmlPage
 nextController controller _ = do
@@ -113,8 +112,8 @@ nextControllerForData controller param = do
 --- @param question - a question asked
 --- @param yescontroller - the controller used if the answer is "yes"
 --- @param nocontroller  - the controller used if the answer is "no"
-confirmDeletionPage :: String -> Controller
-confirmDeletionPage question = do
+confirmDeletionPage :: UserSessionInfo -> String -> Controller
+confirmDeletionPage _ question = do
   (entity,ctrlargs) <- getControllerURL
   listurl           <- getCurrentCatsURL
   case ctrlargs of
@@ -186,15 +185,16 @@ showControllerURL ctrlurl params = '?' : ctrlurl ++ concatMap ('/':) params
 
 --------------------------------------------------------------------------
 --- Standard rendering for WUI forms to edit data.
+--- @param sinfo      - the UserSessionInfo to select the language
 --- @param title      - the title of the WUI form
 --- @param buttontag  - the text on the submit button
 --- @param cancelurl  - the URL selected if submission is cancelled
 --- @param envpar     - environment parameters (e.g., user session data)
 --- @param hexp       - the HTML expression representing the WUI form
 --- @param handler    - the handler for submitting data
-renderWUI :: String -> String -> String
-          -> a -> HtmlExp -> (CgiEnv -> Controller) -> [HtmlExp]
-renderWUI title buttontag cancelurl _ hexp handler =
+renderWUI :: UserSessionInfo -> String -> String -> String
+          -> a -> HtmlExp -> (HtmlEnv -> Controller) -> [HtmlExp]
+renderWUI _ title buttontag cancelurl _ hexp handler =
   [h1 [htxt title],
    hexp,
    breakline,
@@ -245,9 +245,9 @@ wFloat = transformWSpec (readFloat, show)
 readMaybeFloat :: String -> Maybe Float
 readMaybeFloat s =
   if all isFloatChar s
-   then case readsQTerm s of
+   then case reads s of
           [(x,tail)] -> if all isSpace tail then Just x else Nothing
-          _  ->  Nothing
+          _          ->  Nothing
    else Nothing
  where
    isFloatChar c = isDigit c || c == '.'
@@ -260,11 +260,11 @@ spiceyTitle :: String
 spiceyTitle = "Michaels Rezeptverwaltung"
 
 --- The home URL and brand shown at the left top of the main page.
-spiceyHomeBrand :: (String, [HtmlExp])
+spiceyHomeBrand :: (String, [BaseHtml])
 spiceyHomeBrand = ("?", [htxt " Alle Rezepte"])
 
 --- The standard footer of the Spicey page.
-spiceyFooter :: [HtmlExp]
+spiceyFooter :: [BaseHtml]
 spiceyFooter =
   [par [htxt "powered by",
         href "http://www.informatik.uni-kiel.de/~pakcs/spicey"
@@ -277,8 +277,8 @@ spiceyFooter =
 --- generates a redirection page.
 getPage :: ViewBlock -> IO HtmlPage
 getPage viewblock = case viewblock of
-  [HtmlText ""]          -> return $ redirectPage "spicey.cgi"
-  [HtmlText ('?':route)] -> return $ redirectPage ('?':route)
+  [BaseText ""]          -> return $ redirectPage "spicey.cgi"
+  [BaseText ('?':route)] -> return $ redirectPage ('?':route)
   _ -> do
     listurl   <- getCurrentCatsURL
     routemenu <- getRouteMenu
@@ -292,9 +292,9 @@ getPage viewblock = case viewblock of
  where
   messageLine msg lasturl listurl =
     if null msg
-      then HtmlStruct "header" [("class","pagemessage pagemessage-empty")]
+      then htmlStruct "header" [("class","pagemessage pagemessage-empty")]
              [nbsp] --[htxt $ "Last page: "++lasturl ++ " / " ++ listurl]
-      else HtmlStruct "header" [("class","pagemessage")] [htxt msg]
+      else htmlStruct "header" [("class","pagemessage")] [htxt msg]
         
   rightTopMenu login =
     [[hrefNav "?login" (maybe [htxt "Anmelden"]
@@ -322,14 +322,14 @@ jsIncludes =
 cancelOperation :: IO ()
 cancelOperation = do
   inproc <- isInProcess
-  if inproc then removeCurrentProcess else done
+  if inproc then removeCurrentProcess else return ()
   setPageMessage $ (if inproc then "Process" else "Operation") ++ " cancelled"
 
 -- dummy-controller to display an error
 displayError :: String -> Controller
 displayError msg = do
   inproc <- isInProcess
-  if inproc then removeCurrentProcess else done
+  if inproc then removeCurrentProcess else return ()
   setPageMessage ("Error occurred!" ++
                   if inproc then " Process terminated!" else "")
   if null msg
@@ -349,63 +349,63 @@ renderLabels labels hexps =
   enlargeInput h = h `addClass` "input-xxlarge"
 
 -- Convert standard datatype values to HTML representation
-stringToHtml :: String -> HtmlExp
+stringToHtml :: HTML h => String -> h
 stringToHtml s = textstyle "type_string" s
 
-maybeStringToHtml :: Maybe String -> HtmlExp
+maybeStringToHtml :: HTML h => Maybe String -> h
 maybeStringToHtml s = textstyle "type_string" (maybe "" id s)
 
-intToHtml :: Int -> HtmlExp
+intToHtml :: HTML h => Int -> h
 intToHtml i = textstyle "type_int" (show i)
 
-maybeIntToHtml :: Maybe Int -> HtmlExp
+maybeIntToHtml :: HTML h => Maybe Int -> h
 maybeIntToHtml i = textstyle "type_int" (maybe "" show i)
 
-floatToHtml :: Float -> HtmlExp
+floatToHtml :: HTML h => Float -> h
 floatToHtml i = textstyle "type_float" (show i)
 
-maybeFloatToHtml :: Maybe Float -> HtmlExp
+maybeFloatToHtml :: HTML h => Maybe Float -> h
 maybeFloatToHtml i = textstyle "type_float" (maybe "" show i)
 
-boolToHtml :: Bool -> HtmlExp
+boolToHtml :: HTML h => Bool -> h
 boolToHtml b = textstyle "type_bool" (show b)
 
-maybeBoolToHtml :: Maybe Bool -> HtmlExp
+maybeBoolToHtml :: HTML h => Maybe Bool -> h
 maybeBoolToHtml b = textstyle "type_bool" (maybe "" show b)
 
-dateToHtml :: ClockTime -> HtmlExp
+dateToHtml :: HTML h => ClockTime -> h
 dateToHtml ct = textstyle "type_calendartime" (toDayString (toUTCTime ct))
 
-maybeDateToHtml :: Maybe ClockTime -> HtmlExp
+maybeDateToHtml :: HTML h => Maybe ClockTime -> h
 maybeDateToHtml ct =
   textstyle "type_calendartime" (maybe "" (toDayString . toUTCTime) ct)
 
-userDefinedToHtml :: Show a => a -> HtmlExp
+userDefinedToHtml :: (Show a, HTML h) => a -> h
 userDefinedToHtml ud = textstyle "type_string" (show ud)
 
-maybeUserDefinedToHtml :: Show a => Maybe a -> HtmlExp
+maybeUserDefinedToHtml :: (Show a, HTML h) => Maybe a -> h
 maybeUserDefinedToHtml ud = textstyle "type_string" (maybe "" show ud)
 
 --------------------------------------------------------------------------
 -- Auxiliary HTML items:
 
 --- Standard table in Spicey.
-spTable :: [[[HtmlExp]]] -> HtmlExp
+spTable :: HTML h => [[[h]]] -> h
 spTable items = table items  `addClass` "table table-hover table-condensed"
 
 --------------------------------------------------------------------------
 -- The page messages are implemented by a session store.
--- We define a global variable to store a message which is shown
+-- This store contains a message which is shown
 -- in the next HTML page of a session.
 
 --- Definition of the session state to store the page message (a string).
-pageMessage :: Global (SessionStore String)
-pageMessage = global emptySessionStore (Persistent (inDataDir "pageMessage"))
+pageMessage :: SessionStore String
+pageMessage = sessionStore "pageMessage"
 
 --- Gets the page message and delete it.
 getPageMessage :: IO String
 getPageMessage = do
-  msg <- getSessionData pageMessage ""
+  msg <- fromFormReader $ getSessionData pageMessage ""
   removeSessionData pageMessage
   return msg
 
@@ -418,12 +418,12 @@ setPageMessage msg = putSessionData pageMessage msg
 -- We store the list of selected URLs into  the current session.
 
 --- Definition of the session state to store the last URL (as a string).
-lastUrls :: Global (SessionStore [String])
-lastUrls = global emptySessionStore (Persistent (inDataDir "lastUrls"))
+lastUrls :: SessionStore [String]
+lastUrls = sessionStore "lastUrls"
 
 --- Gets the list of URLs of the current session.
 getLastUrls :: IO [String]
-getLastUrls = getSessionData lastUrls []
+getLastUrls = fromFormReader $ getSessionData lastUrls []
 
 --- Gets the last URL of the current session (or "?").
 getLastUrl :: IO String

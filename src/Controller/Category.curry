@@ -3,9 +3,9 @@ module Controller.Category
   , listCategoryController, listCategoryControllerWithArgs )
  where
 
-import Global
-import List(last)
-import Time
+import Data.List(last)
+import Data.Maybe
+import Data.Time
 
 import HTML.Base
 import HTML.Session
@@ -15,7 +15,6 @@ import Config.Storage
 import System.Spicey
 import Recipes
 import View.Category
-import Maybe
 import System.SessionInfo
 import System.Authorization
 import System.AuthorizedActions
@@ -44,72 +43,82 @@ type NewCategory = (String,Int)
 --- Shows a form to create a new Category entity inside the given category.
 newCategoryController :: Category -> Controller
 newCategoryController cat =
-  checkAuthorization (categoryOperationAllowed NewEntity) $ \_ -> do
+  checkAuthorization (categoryOperationAllowed NewEntity) $ \sinfo -> do
     listurl <- getCurrentCatsURL
-    setParWuiStore newCategoryStore (cat,listurl) ("",0)
-    return [formExp newCategoryForm]
+    setParWuiStore newCategoryStore (sinfo,cat,listurl) ("",0)
+    return [formElem newCategoryForm]
 
 --- Supplies a WUI form to create a new Category entity.
 --- The fields of the entity have some default values.
-newCategoryForm :: HtmlFormDef ((Category,String), WuiStore NewCategory)
+newCategoryForm :: HtmlFormDef ((UserSessionInfo,Category,String), WuiStore NewCategory)
 newCategoryForm =
   pwui2FormDef "Controller.Category.newCategoryForm"
     newCategoryStore
     (\_ -> wCategory)
-    (\ (cat,listurl) entity -> do
+    (\ (_,cat,listurl) entity -> do
        transactionController (runT (createCategoryT cat entity))
          (nextInProcessOr (redirectController listurl) Nothing))
-    (\ (_,listurl) -> renderWUI "Neue Kategorie" "Speichern" listurl ())
+    (\ (sinfo,_,listurl) -> renderWUI sinfo "Neue Kategorie" "Speichern" listurl ())
 
 ---- The data stored for executing the WUI form.
 newCategoryStore ::
-  Global (SessionStore ((Category,String), WuiStore NewCategory))
-newCategoryStore =
-  global emptySessionStore (Persistent (inDataDir "newCategoryStore"))
+  SessionStore ((UserSessionInfo,Category,String), WuiStore NewCategory)
+newCategoryStore = sessionStore "newCategoryStore"
 
 --- Transaction to persist a new Category entity to the database.
 createCategoryT :: Category -> (String,Int) -> DBAction ()
 createCategoryT cat (name,position) =
   newCategoryWithCategoryParentCategoryKey name position
    (Just (categoryKey cat))
-   >+= (\_ -> return ())
+   >>= (\_ -> return ())
 
 ------------------------------------------------------------------------------
 --- Shows a form to edit the given Category entity.
 editCategoryController :: Category -> Controller
 editCategoryController categoryToEdit =
   checkAuthorization (categoryOperationAllowed (UpdateEntity categoryToEdit))
-   $ \_ -> do
-      setParWuiStore wuiEditCategoryStore categoryToEdit categoryToEdit
-      return [formExp editCategoryForm]
+   $ \sinfo -> do
+      setParWuiStore editCategoryStore (sinfo,categoryToEdit) categoryToEdit
+      return [formElem editCategoryForm]
 
 --- Supplies a WUI form to edit a given Category entity.
 --- The fields of the entity have some default values.
-editCategoryForm :: HtmlFormDef (Category, WuiStore Category)
+editCategoryForm :: HtmlFormDef ((UserSessionInfo,Category), WuiStore Category)
 editCategoryForm =
   pwui2FormDef "Controller.Category.editCategoryForm"
-    wuiEditCategoryStore
-    (\cat -> wCategoryType cat)
-    (\cat entity -> do
+    editCategoryStore
+    (\(_,cat) -> wCategoryType cat)
+    (\(_,cat) entity -> do
        listurl <- getCurrentCatsURL
-       checkAuthorization (categoryOperationAllowed (UpdateEntity cat)) $ \_ ->
+       checkAuthorization (categoryOperationAllowed (UpdateEntity cat)) $
+        \_ ->
          transactionController (runT (updateCategory entity))
            (nextInProcessOr (redirectController listurl) Nothing))
-    (renderWUI "Kategorie ändern" "Speichern" "?Category/list")
+    (\(sinfo,_) ->
+     renderWUI sinfo "Kategorie ändern" "Speichern" "?Category/list" ())
 
 ---- The data stored for executing the WUI form.
-wuiEditCategoryStore :: Global (SessionStore (Category, WuiStore Category))
-wuiEditCategoryStore =
-  global emptySessionStore (Persistent (inDataDir "wuiEditCategoryStore"))
+editCategoryStore :: SessionStore ((UserSessionInfo,Category), WuiStore Category)
+editCategoryStore = sessionStore "editCategoryStore"
 
-------------------------------------------------------------------------------
+--- Transaction to persist modifications of a given Category entity
+--- to the database.
+updateCategoryT :: (Category,[Recipe]) -> DBAction ()
+updateCategoryT (category,recipesRecipeCategory) =
+  updateCategory category
+   >> ((getCategoryRecipes category
+         >>= (\oldRecipeCategoryRecipes ->
+           removeRecipeCategory oldRecipeCategoryRecipes category))
+        >> addRecipeCategory recipesRecipeCategory category)
+
 --- Deletes a given Category entity (after asking for confirmation)
 --- and proceeds with the list controller.
 deleteCategoryController :: Category -> Controller
 deleteCategoryController category =
-  checkAuthorization (categoryOperationAllowed (DeleteEntity category)) $ \_ ->
-    confirmDeletionPage
-      (concat ["Really delete entity \"",categoryToShortView category,"\"?"])
+  checkAuthorization (categoryOperationAllowed (DeleteEntity category))
+   $ (\sinfo ->
+     confirmDeletionPage sinfo
+      (concat ["Really delete entity \"",categoryToShortView category,"\"?"]))
 
 --- Deletes a given Category entity
 --- and proceeds with the list controller.
@@ -125,11 +134,10 @@ destroyCategoryController category = do
 deleteCategoryT :: Category -> DBAction ()
 deleteCategoryT category =
   (getCategoryRecipes category
-    >+= (\oldRecipeCategoryRecipes ->
+    >>= (\oldRecipeCategoryRecipes ->
       removeRecipeCategory oldRecipeCategoryRecipes category))
-   >+ deleteCategory category
+   >> deleteCategory category
 
---- Lists Category entities in a given category navigation.
 --- Lists all Category entities with buttons to show, delete,
 --- or edit an entity.
 listCategoryController :: Controller
@@ -185,7 +193,7 @@ removeRecipeCategory recipes category =
 --- query the root category
 queryRootCategory :: DBAction Category
 queryRootCategory =
-  liftM head
+  fmap head
     (queryCondCategory (\c -> categoryCategoryParentCategoryKey c == Nothing))
 
 --- query contents of a category with a given key

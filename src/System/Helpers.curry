@@ -5,7 +5,7 @@
 module System.Helpers
  where
 
-import IOExts ( evalCmd )
+import System.IOExts ( evalCmd )
 
 import HTML.Base
 
@@ -17,15 +17,15 @@ import HTML.Base
 -- where the contents of the uploaded file is stored (actually, the
 -- Python script stores the file in the local directory `uploads`),
 -- and the URL loaded after uploading the file.
-uploadForm :: String -> String -> String -> HtmlExp
+uploadForm :: HTML h => String -> String -> String -> h
 uploadForm filetypes uploadfilename redirecturl =
-  HtmlStruct "form" [("method","post"), ("action","upload-handler.cgi"),
+  htmlStruct "form" [("method","post"), ("action","upload-handler.cgi"),
                      ("enctype","multipart/form-data")]
     [hiddenField "UPLOADNAME" uploadfilename,
      hiddenField "REDIRECT"   redirecturl,
-     HtmlStruct "input" [("type","file"), ("name","FILENAME"),
+     htmlStruct "input" [("type","file"), ("name","FILENAME"),
                          ("accept",filetypes)] [],
-     par [HtmlStruct "input" [("type","submit"), ("value", "Hochladen!")] []]
+     par [htmlStruct "input" [("type","submit"), ("value", "Hochladen!")] []]
     ]
 
 ------------------------------------------------------------------------------

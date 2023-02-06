@@ -4,7 +4,7 @@
 
 module Config.Storage where
 
-import FilePath     ( (</>) )
+import System.FilePath     ( (</>) )
 
 import Config.Globals
 
