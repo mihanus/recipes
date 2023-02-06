@@ -3,10 +3,11 @@ module Controller.Category
   , listCategoryController, listCategoryControllerWithArgs )
  where
 
-import Data.List(last)
+import Data.List  ( last )
 import Data.Maybe
 import Data.Time
 
+import Database.CDBI.Connection
 import HTML.Base
 import HTML.Session
 import HTML.WUI
@@ -20,7 +21,7 @@ import System.Authorization
 import System.AuthorizedActions
 import Config.UserProcesses
 import View.EntitiesToHtml
-import Database.CDBI.Connection
+import SQL_Queries ( queryDescriptionOfRecipe )
 
 --- Choose the controller for a Category entity according to the URL parameter.
 mainCategoryController :: Controller
@@ -160,11 +161,13 @@ listCategoryControllerWithArgs givenargs =
     currentcat <- runJustT (getCategory ckey)
     categorys <- runQ $ queryCategoryContent ckey
     recipes  <- runJustT $ getRecipesInCategory ckey
+    recdescs <- mapM (\r -> runQ $ queryDescriptionOfRecipe (recipeKey r))
+                     recipes
     parentcatnames <- runJustT $ mapM stringcatkey2catname args
     storeCurrentCats args
     return$ listCategoryView sinfo
               (zip parentcatnames args) currentcat
-              categorys recipes
+              categorys (zip recipes (map isJust recdescs))
  where
   stringcatkey2catname s =
     maybe (return "")

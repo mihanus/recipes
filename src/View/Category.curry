@@ -60,9 +60,11 @@ leqCategory x1 x2 = categoryPosition x1 <= categoryPosition x2
 --- The arguments are the user session info, the name and key strings
 --- of all categories from the root to the current category,
 --- the current category, and the list of categories and recipes
+--- (where the flag is `True` if the recipe has a description)
 --- contained in this category.
 listCategoryView
- :: UserSessionInfo -> [(String,String)] -> Category -> [Category] -> [Recipe]
+  :: UserSessionInfo -> [(String,String)] -> Category -> [Category]
+  -> [(Recipe,Bool)]
   -> [BaseHtml]
 listCategoryView sinfo parentcats currentcat categorys recipes =
   [h4 (concatMap
@@ -73,8 +75,8 @@ listCategoryView sinfo parentcats currentcat categorys recipes =
          (zip [0..] (init parentcats))),
    h1 [htxt (categoryName currentcat)],
    spTable (map listCategory (sortBy leqCategory categorys) ++
-            map (recipeToListView (map snd parentcats))
-                (sortBy leqRecipe recipes))] ++
+            map (recipeDescToListView (map snd parentcats))
+                (sortBy (\(r1,_) (r2,_) -> leqRecipe r1 r2) recipes))] ++
    if isAdminSession sinfo
    then [par [hrefPrimSmButton (showControllerURL "Recipe"
                             ["new", showCategoryKey currentcat])

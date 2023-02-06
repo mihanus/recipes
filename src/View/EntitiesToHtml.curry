@@ -11,7 +11,7 @@ import Recipes
 --- This view is used in a row of a table of all entities.
 categoryToListView :: HTML h => [String] -> Category -> [[h]]
 categoryToListView parcatids cat =
-  [[hrefInfoSmBlock
+  [[hrefPrimSmBlock
      (showControllerURL "Category" ("list":parcatids++[showCategoryKey cat]))
      [stringToHtml (categoryName cat)]]]
 
@@ -72,6 +72,15 @@ keywordLabelList =
 recipeToListView :: HTML h => [String] -> Recipe -> [[h]]
 recipeToListView parcatids recipe =
   [[hrefInfoSmBlock
+      (showControllerURL "Recipe" ("show": showRecipeKey recipe : parcatids))
+      [stringToHtml (recipeName recipe)]]]
+
+--- The list view of a Recipe entity and a tag indicating
+--- whether this Recipe has a description in HTML format.
+--- This view is used in a row of a table of all entities.
+recipeDescToListView :: HTML h => [String] -> (Recipe,Bool) -> [[h]]
+recipeDescToListView parcatids (recipe,hasdesc) =
+  [[(if hasdesc then hrefPrimSmBlock else hrefInfoSmBlock)
       (showControllerURL "Recipe" ("show": showRecipeKey recipe : parcatids))
       [stringToHtml (recipeName recipe)]]]
 
