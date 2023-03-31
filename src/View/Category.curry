@@ -74,24 +74,26 @@ listCategoryView sinfo parentcats currentcat categorys recipes =
                  [htxt cname], htxt " >> "])
          (zip [0..] (init parentcats))),
    h1 [htxt (categoryName currentcat)],
-   spTable (map listCategory (sortBy leqCategory categorys) ++
-            map (recipeDescToListView (map snd parentcats))
-                (sortBy (\(r1,_) (r2,_) -> leqRecipe r1 r2) recipes))] ++
+   (if isAdminSession sinfo then spTable else listAsTableContainer 4)
+      (map listCategory (sortBy leqCategory categorys)),
+   listAsTableContainer 3
+     (map (recipeDescToListView (map snd parentcats))
+          (sortBy (\ (r1,_) (r2,_) -> leqRecipe r1 r2) recipes))] ++
    if isAdminSession sinfo
-   then [par [hrefPrimSmButton (showControllerURL "Recipe"
-                            ["new", showCategoryKey currentcat])
-                         [htxt "Neues Rezept"], nbsp,
-              hrefPrimSmButton (showControllerURL "Recipe"
-                            ["newref", showCategoryKey currentcat])
-                         [htxt "Neue Rezeptreferenz"], nbsp,
-              hrefPrimSmButton (showControllerURL "Recipe"
-                            ["add", showCategoryKey currentcat])
-                         [htxt "Vorhandenes Rezept hinzufügen"], nbsp,
-              hrefPrimSmButton (showControllerURL "Category"
-                            ["new", showCategoryKey currentcat])
-                         [htxt "Neue Kategorie hinzufügen"]
-             ]]
-   else []
+     then [par [hrefPrimSmButton (showControllerURL "Recipe"
+                                    ["new", showCategoryKey currentcat])
+                                 [htxt "Neues Rezept"], nbsp,
+                hrefPrimSmButton (showControllerURL "Recipe"
+                                    ["newref", showCategoryKey currentcat])
+                                 [htxt "Neue Rezeptreferenz"], nbsp,
+                hrefPrimSmButton (showControllerURL "Recipe"
+                                    ["add", showCategoryKey currentcat])
+                                 [htxt "Vorhandenes Rezept hinzufügen"], nbsp,
+                hrefPrimSmButton (showControllerURL "Category"
+                                    ["new", showCategoryKey currentcat])
+                                 [htxt "Neue Kategorie hinzufügen"]
+               ]]
+     else []
   where
     listCategory :: Category -> [[BaseHtml]]
     listCategory category =
@@ -100,3 +102,4 @@ listCategoryView sinfo parentcats currentcat categorys recipes =
              then [[hrefPrimBadge (editRoute   category) [htxt "Ändern"]],
                    [hrefPrimBadge (deleteRoute category) [htxt "Löschen"]]]
              else [])
+

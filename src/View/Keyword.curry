@@ -63,5 +63,5 @@ keywordAlphabetView cs =
                          [htxt "Alle Stichworte"]]]
  where
   charButton c =
-    [hrefPrimBadge (showControllerURL "Keyword" ["char", string2urlencoded [c]])
+    [hrefPrimButton (showControllerURL "Keyword" ["char", string2urlencoded [c]])
                    [htxt [c]]]

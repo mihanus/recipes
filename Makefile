@@ -28,7 +28,11 @@ CURRYOPTIONS=:set -time
 
 # Target directory where the compiled cgi programs, style sheets, etc
 # should be stored, e.g.: $(HOME)/public_html
-WEBSERVERDIR=$(HOME)/public_html/SAM/recipes_$(SYSTEM)
+#WEBSERVERDIR=$(HOME)/public_html/SAMHANUS/SAM/recipes_$(SYSTEM)
+WEBSERVERDIR=$(HOME)/public_html/SAMHANUS/SAM/recipes
+
+# Directory containing recipe data:
+DATADIR=$(WEBSERVERDIR)/../recipeData
 
 # Executable of the Curry Package Manager CPM:
 CPM := $(CURRYBIN)/cypm
@@ -87,6 +91,9 @@ deploy: checkdeploy
 	cp -r public/* $(WEBSERVERDIR)
 	cp -p upload-handler.cgi $(WEBSERVERDIR)
 	chmod -R go+rX $(WEBSERVERDIR)
+	# be sure that the data directory exists:
+	mkdir -p $(DATADIR)
+	chmod 700 $(DATADIR)
 	# recreate directory for storing local session data:
 	#/bin/rm -r $(WEBSERVERDIR)/sessiondata
 	mkdir -p $(WEBSERVERDIR)/sessiondata

@@ -19,7 +19,7 @@ module System.Spicey (
   intToHtml,maybeIntToHtml, floatToHtml, maybeFloatToHtml,
   boolToHtml, maybeBoolToHtml, dateToHtml, maybeDateToHtml,
   userDefinedToHtml, maybeUserDefinedToHtml,
-  spTable,
+  spTable, listAsTableContainer,
   setPageMessage, getPageMessage,
   saveLastUrl, getLastUrl, getLastUrls, getCurrentCatsURL
   ) where
@@ -392,6 +392,26 @@ maybeUserDefinedToHtml ud = textstyle "type_string" (maybe "" show ud)
 --- Standard table in Spicey.
 spTable :: HTML h => [[[h]]] -> h
 spTable items = table items  `addClass` "table table-hover table-condensed"
+
+
+--- Renders a list of list HTML elements as a Bootstrap row/col table structure
+--- with `n` columns where `n` should be a divisor of 12.
+listAsTableContainer :: HTML h => Int -> [[[h]]] -> h
+listAsTableContainer n entries =
+  blockstyle "container-fluid" $
+    map (\rs -> blockstyle "row"
+                  (map (blockstyle $ "col-sm-" ++ show d ++
+                                     " col-md-" ++ show d ++ " vpadding") rs))
+        (list2table n entries)
+ where
+  d = 12 `div` n
+
+  -- transform a list of entry rows into a matrix with a given row width:
+  list2table :: Int -> [[a]] -> [[a]]
+  list2table n xs
+    | length xs <= n = [concat xs]
+    | otherwise      = let (fstrow,remxs) = splitAt n xs
+                       in concat fstrow : list2table n remxs
 
 --------------------------------------------------------------------------
 -- The page messages are implemented by a session store.

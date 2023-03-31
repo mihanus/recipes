@@ -13,6 +13,8 @@ import qualified Database.CDBI.Criteria
 import qualified Database.CDBI.Connection
 import qualified Database.CDBI.Description
 
+import Config.Globals
+
 data Tagging = Tagging RecipeID KeywordID
  deriving (Eq,Show,Read)
 
@@ -51,7 +53,8 @@ data RecipeDescriptionID = RecipeDescriptionID Int
 
 --- The name of the SQLite database file.
 sqliteDBFile :: String
-sqliteDBFile = "/net/medoc/home/mh/home/data/recipes/Recipes.db"
+--sqliteDBFile = "/net/medoc/home/mh/home/data/recipes/Recipes.db"
+sqliteDBFile = recipeDB
 
 --- The ER description of the `Tagging` entity.
 tagging_CDBI_Description :: Database.CDBI.Description.EntityDescription Tagging

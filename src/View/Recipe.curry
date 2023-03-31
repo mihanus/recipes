@@ -222,7 +222,7 @@ linesToHtmlPars =
 listRecipeView :: UserSessionInfo -> String -> [Recipe] -> [BaseHtml]
 listRecipeView _ title recipes =
   [h1 [htxt title]
-  ,spTable (map listRecipe (sortBy leqRecipe recipes))]
+  ,listAsTableContainer 3 (map listRecipe (sortBy leqRecipe recipes))]
   where
     listRecipe recipe = recipeToListView [] recipe
 
@@ -230,7 +230,8 @@ listRecipeView _ title recipes =
 listRecipesOfKeyword :: UserSessionInfo -> Keyword -> [Recipe] -> [BaseHtml]
 listRecipesOfKeyword sinfo keyword recipes =
   [h1 [htxt ("Rezepte mit Stichwort: " ++ keywordName keyword)]
-  ,spTable (map (recipeToListView []) (sortBy leqRecipe recipes))] ++
+  ,listAsTableContainer 3
+     (map (recipeToListView []) (sortBy leqRecipe recipes))] ++
   if null recipes && isAdminSession sinfo
     then [hrefInfoBlock
             (showControllerURL "Keyword" ["delete", showKeywordKey keyword])

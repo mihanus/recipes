@@ -98,3 +98,8 @@ body {
   width: auto;
 }
 
+/* vertical (top and bottom) padding */
+.vpadding {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
