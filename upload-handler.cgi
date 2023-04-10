@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # A simple script to upload a file with a CGI form
 
 # Import modules for CGI handling 
@@ -29,13 +29,13 @@ else:
 
 # Redirect to a URL if defined by field REDIRECT
 if form.getvalue('REDIRECT'):
-   print "Location: " + form.getvalue('REDIRECT')
-   print ""
+   print("Location: " + form.getvalue('REDIRECT'))
+   print("")
 else:
-   print "Content-Type: text/html"
-   print ""
-   print "<html>"
-   print "<body>"
-   print " <p>%s</p>" % (message,)
-   print "</body>"
-   print "</html>"
+   print("Content-Type: text/html")
+   print("")
+   print("<html>")
+   print("<body>")
+   print(" <p>%s</p>" % (message,))
+   print("</body>")
+   print("</html>")
