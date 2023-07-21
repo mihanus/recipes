@@ -219,12 +219,17 @@ linesToHtmlPars =
   map (\s -> par [htxt s]) . map unlines . split (all isSpace) . lines
 
 --- Supplies a list view for a given list of Recipe entities.
-listRecipeView :: UserSessionInfo -> String -> [Recipe] -> [BaseHtml]
-listRecipeView _ title recipes =
+listRecipeView :: Bool -> UserSessionInfo -> String -> [Recipe] -> [BaseHtml]
+listRecipeView sortalpha _ title recipes =
   [h1 [htxt title]
-  ,listAsTableContainer 3 (map listRecipe (sortBy leqRecipe recipes))]
-  where
-    listRecipe recipe = recipeToListView [] recipe
+  ,listAsTableContainer 3 (map listRecipe (sortBy leqr recipes))]
+ where
+  listRecipe recipe = recipeToListView [] recipe
+
+  leqr r1 r2 = if sortalpha
+                 then leqRecipe r1 r2
+                 else recipeKeyToInt (recipeKey r2) <=
+                      recipeKeyToInt (recipeKey r1)
 
 --- Supplies a list view for a given list of recipes of a keyword.
 listRecipesOfKeyword :: UserSessionInfo -> Keyword -> [Recipe] -> [BaseHtml]

@@ -34,8 +34,9 @@ mainRecipeController :: Controller
 mainRecipeController = do
   args <- getControllerParams
   case args of
-    [] -> listRecipeController
-    ["list"] -> listRecipeController
+    [] -> listRecipeController True
+    ["list"] -> listRecipeController True
+    ["listid"] -> listRecipeController False
     ["add",catkey] -> addRecipeController catkey
     ["new",catkey] -> newRecipeDescController catkey
     ["newref",catkey] -> newRecipeController catkey
@@ -342,13 +343,14 @@ checkUploadPDFRecipeController recipe =
 
 --------------------------------------------------------------------------
 --- Lists all Recipe entities with buttons to show, delete,
---- or edit an entity.
-listRecipeController :: Controller
-listRecipeController =
+--- or edit an entity. If the argument is `True`, the recipes
+--- are alphabetically sorted, otherwise by their ID (creation time).
+listRecipeController :: Bool -> Controller
+listRecipeController sortalpha =
   checkAuthorization (recipeOperationAllowed ListEntities)
    $ (\sinfo ->
      do recipes <- runQ queryAllRecipes
-        return (listRecipeView sinfo "Alle Rezepte" recipes))
+        return (listRecipeView sortalpha sinfo "Alle Rezepte" recipes))
 
 --- Shows a Recipe entity.
 showRecipeController :: [String] -> Recipe -> Controller

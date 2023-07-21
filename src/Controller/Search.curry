@@ -36,7 +36,7 @@ searchRecipeNames searchstring = do
               ``sql* Select *
                      From Recipe
                      Where Name like {pattern};''
-  return (listRecipeView sinfo ("Rezepte mit: " ++ searchstring) recipes)
+  return (listRecipeView True sinfo ("Rezepte mit: " ++ searchstring) recipes)
 
 
 --- Controller for searching in recipe ingredientss.
@@ -50,7 +50,6 @@ searchRecipeIngredients searchstring = do
            Where rd.RecipeRecDescKey = rec.Key
                  And rd.Ingredients like {pattern};''
   recipes <- runQ $ mapM getRecipe reckeys
-  return (listRecipeView sinfo ("Rezepte mit: " ++ searchstring) recipes)
-
+  return (listRecipeView True sinfo ("Rezepte mit: " ++ searchstring) recipes)
 
 -----------------------------------------------------------------------------
