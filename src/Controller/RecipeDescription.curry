@@ -5,7 +5,7 @@ import HTML.Base
 import HTML.Session
 import HTML.WUI
 
-import Recipes
+import Model.Recipes
 import Config.EntityRoutes
 import Config.Storage
 import Config.UserProcesses

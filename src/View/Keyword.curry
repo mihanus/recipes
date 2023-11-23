@@ -9,7 +9,7 @@ import Data.Time
 import HTML.Base
 import HTML.Styles.Bootstrap4
 import HTML.WUI
-import Recipes
+import Model.Recipes
 import Config.EntityRoutes
 import System.SessionInfo
 import System.Spicey

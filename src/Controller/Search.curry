@@ -12,7 +12,7 @@ import Data.Char ( toLower )
 import Database.CDBI.ER 
 import HTML.Base
 
-import Recipes
+import Model.Recipes
 import System.SessionInfo
 import System.Spicey
 import View.Recipe

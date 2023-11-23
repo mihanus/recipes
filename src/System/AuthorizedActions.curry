@@ -3,7 +3,7 @@ module System.AuthorizedActions where
 import System.Authentication
 import System.Authorization
 import System.SessionInfo
-import Recipes
+import Model.Recipes
 
 -- Only listing is allow for non-admins:
 anyOperationAllowed :: AccessType _ -> UserSessionInfo -> IO AccessResult

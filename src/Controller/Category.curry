@@ -14,14 +14,14 @@ import HTML.WUI
 
 import Config.Storage
 import System.Spicey
-import Recipes
+import Model.Recipes
 import View.Category
 import System.SessionInfo
 import System.Authorization
 import System.AuthorizedActions
 import Config.UserProcesses
 import View.EntitiesToHtml
-import SQL_Queries ( queryDescriptionOfRecipe )
+import Model.SQL_Queries ( queryDescriptionOfRecipe )
 
 --- Choose the controller for a Category entity according to the URL parameter.
 mainCategoryController :: Controller

@@ -1,4 +1,4 @@
-PInfo "/net/medoc/home/mh/home/data/recipes/Recipes.db" "Recipes"
+PInfo "/net/medoc/home/mh/home/data/recipes/Recipes.db" "Model.Recipes"
  [(("RecipeDescription","descOf","Recipe"),NtoOne "RecDesc")
  ,(("Recipe","withDesc","RecipeDescription"),OnetoN "RecDesc")
  ,(("Recipe","recWithKeyword","Keyword"),MtoN "Tagging")

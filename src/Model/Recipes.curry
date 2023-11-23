@@ -5,7 +5,7 @@
 --- and contains definitions for all entities and relations
 --- specified in this model.
 
-module Recipes where
+module Model.Recipes where
 
 import qualified Data.Time
 import qualified Database.CDBI.ER

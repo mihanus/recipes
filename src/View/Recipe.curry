@@ -16,7 +16,7 @@ import HTML.WUI
 import System.Authentication
 import System.Spicey
 import System.SessionInfo
-import Recipes
+import Model.Recipes
 import View.EntitiesToHtml
 
 --- Shows keywords as comma-separated string.

@@ -2,11 +2,11 @@
 
 --- Some SQL queries on the recipe database
 
-module SQL_Queries where
+module Model.SQL_Queries where
 
 import Database.CDBI.ER
 
-import Recipes
+import Model.Recipes
 
 -----------------------------------------------------------------------
 --- Gets all Keyword entities having a given string as keyword.

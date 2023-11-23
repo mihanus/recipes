@@ -10,8 +10,8 @@ import HTML.WUI
 
 import Config.EntityRoutes
 import Config.Storage
-import Recipes
-import SQL_Queries
+import Model.Recipes
+import Model.SQL_Queries
 import View.Keyword
 import System.SessionInfo
 import System.Authorization

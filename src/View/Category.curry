@@ -12,7 +12,7 @@ import Config.EntityRoutes
 import System.Authentication
 import System.Spicey
 import System.SessionInfo
-import Recipes
+import Model.Recipes
 import View.EntitiesToHtml
 import View.Recipe ( leqRecipe )
 

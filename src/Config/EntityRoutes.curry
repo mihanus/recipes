@@ -1,7 +1,7 @@
 module Config.EntityRoutes () where
 
 import System.Spicey
-import Recipes
+import Model.Recipes
 
 instance EntityController Category where
   controllerOnKey s =

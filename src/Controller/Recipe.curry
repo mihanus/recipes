@@ -17,8 +17,8 @@ import Config.Storage
 import HTML.Base
 import HTML.Session
 import HTML.WUI
-import Recipes
-import SQL_Queries
+import Model.Recipes
+import Model.SQL_Queries
 import View.Recipe
 import System.Spicey
 import System.SessionInfo

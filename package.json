@@ -16,6 +16,5 @@
         "process"    : "^ 3.0.0",
         "time"       : "^ 3.0.0",
         "wui2"       : "^ 3.1.0"
-    },
-    "sourceDirs": [ "src", "src/Model" ]
+    }
 }

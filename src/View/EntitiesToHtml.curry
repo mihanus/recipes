@@ -5,7 +5,7 @@ import HTML.Base
 import HTML.WUI
 import HTML.Styles.Bootstrap4
 import System.Spicey
-import Recipes
+import Model.Recipes
 
 --- The list view of a Category entity in HTML format.
 --- This view is used in a row of a table of all entities.
