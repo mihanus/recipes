@@ -53,6 +53,9 @@ logoutFromSession = updateUserSessionInfo (setUserLoginOfSession Nothing)
 
 --------------------------------------------------------------------------
 --- Is the session a session of the admin?
+--- In this application, any logged-in user can act as an admin.
 isAdminSession :: UserSessionInfo -> Bool
 isAdminSession sinfo = 
-  maybe False (==defaultLoginName) (userLoginOfSession sinfo)
+  maybe False (const True) (userLoginOfSession sinfo)
+
+--------------------------------------------------------------------------

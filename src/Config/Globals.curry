@@ -16,10 +16,10 @@ recipeDataDir = "../recipeData"
 recipeDB :: String
 recipeDB = recipeDataDir </> "Recipes.db"
 
--- Standard login name
-defaultLoginName :: String
-defaultLoginName = "gourmet"
+-- File containing the standard login name
+defaultLoginFile :: String
+defaultLoginFile = recipeDataDir </> ".rezlogin"
 
 -- File containing hash code of default login
 defaultHashFile :: String
-defaultHashFile = recipeDataDir </> ".rezlogin"
+defaultHashFile = recipeDataDir </> ".rezhash"
