@@ -5,7 +5,7 @@ module View.Recipe
   , listRecipesOfKeyword, singleRecipeView, leqRecipe ) where
 
 import Data.Char ( isSpace )
-import Data.List ( intersperse, isSuffixOf, last, sortBy, split )
+import Data.List ( intersperse, isPrefixOf, isSuffixOf, last, sortBy, split )
 import Data.Time
 
 import Config.Storage
@@ -184,19 +184,34 @@ singleRecipeView sinfo parentcats recipe keywords mbrecdesc mbpic mbpdf =
 
 -- Shows the reference of a recipe. If it contains the substring "<....pdf>",
 -- it will be shown as a reference to the `recipes_archives` directory.
+-- If it starts with `http`, it will be shown as a hyperref.
 recipeReference2HTML :: String -> [BaseHtml]
 recipeReference2HTML ref =
   (htxt "in: ") :
   let (prefix,latxt) = break (=='<') ref
-   in if null latxt
-        then [htxt ref]
-        else let (pdfref,suffix) = break (=='>') (tail latxt) in
-              if null suffix || not (".pdf" `isSuffixOf` pdfref)
-                then [htxt ref]
-                else [htxt prefix, htxt "(",
-                      bold [href ("../recipes_archive/" ++ pdfref)
-                                 [htxt "PDF"]],
-                      htxt ")", htxt (tail suffix)]
+  in if null latxt
+       then string2HTML ref
+       else let (pdfref,suffix) = break (=='>') (tail latxt) in
+             if null suffix || not (".pdf" `isSuffixOf` pdfref)
+               then string2HTML ref
+               else [htxt prefix, htxt "(",
+                     bold [href ("../recipes_archive/" ++ pdfref)
+                                [htxt "PDF"]],
+                     htxt ")", htxt (tail suffix)]
+
+-- Translate a string into HTML where `http` occurrences are shown
+-- as references.
+string2HTML :: String -> [BaseHtml]
+string2HTML = intersperse nbsp . map toHtml . words
+ where
+  toHtml w = if isURL w then ehrefInfoBadge w [htxt (dropHttp w)]
+                        else htxt w
+
+  isURL s = "http://" `isPrefixOf` s || "https://" `isPrefixOf` s
+
+  dropHttp s | "http://"  `isPrefixOf` s = drop 7 s
+             | "https://" `isPrefixOf` s = drop 8 s
+             | otherwise                 = s
 
 showRecipeDescription :: Maybe RecipeDescription -> [BaseHtml]
 showRecipeDescription Nothing = []
