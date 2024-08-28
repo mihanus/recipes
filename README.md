@@ -4,7 +4,8 @@ A Recipe Database and Web Interface
 This Curry package contains an implementation of a recipe database
 together with a web-based interface. It is implemented in
 [Curry](http://curry-lang.org/) and based on the
-[web framework Spicey](https://www.informatik.uni-kiel.de/~pakcs/spicey/).
+[web framework Spicey](https://cpm.curry-lang.org/pkgs/spicey.html)
+and [Bootstrap](https://getbootstrap.com/) for a nice layout.
 
 IMPORTANT NOTES:
 ----------------

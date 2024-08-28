@@ -5,8 +5,7 @@
     "synopsis": "A web application for managing recipes",
     "category": [ "Web" ],
     "dependencies": {
-        "base"       : "^ 3.0.0",
-        "allvalues"  : "^ 3.0.0",
+        "base"       : "^ 3.2.0",
         "cdbi"       : "^ 3.2.0",
         "cryptohash" : "^ 3.0.0",
         "directory"  : "^ 3.0.0",

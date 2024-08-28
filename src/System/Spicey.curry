@@ -267,7 +267,7 @@ spiceyHomeBrand = ("?", [htxt " Alle Rezepte"])
 spiceyFooter :: [BaseHtml]
 spiceyFooter =
   [par [htxt "powered by",
-        href "http://www.informatik.uni-kiel.de/~pakcs/spicey"
+        href "https://cpm.curry-lang.org/pkgs/spicey.html"
              [image "bt4/img/spicey-logo.png" "Spicey"]
           `addAttr` ("target","_blank"),
         htxt "Framework"]]
