@@ -290,7 +290,7 @@ getPage viewblock = case viewblock of
       0 []  [h1 [htxt spiceyTitle]]
       (messageLine msg lasturl listurl : viewblock ) spiceyFooter
  where
-  messageLine msg lasturl listurl =
+  messageLine msg _ _ =
     if null msg
       then htmlStruct "header" [("class","pagemessage pagemessage-empty")]
              [nbsp] --[htxt $ "Last page: "++lasturl ++ " / " ++ listurl]
@@ -408,10 +408,10 @@ listAsTableContainer n entries =
 
   -- transform a list of entry rows into a matrix with a given row width:
   list2table :: Int -> [[a]] -> [[a]]
-  list2table n xs
-    | length xs <= n = [concat xs]
-    | otherwise      = let (fstrow,remxs) = splitAt n xs
-                       in concat fstrow : list2table n remxs
+  list2table rw xs
+    | length xs <= rw = [concat xs]
+    | otherwise       = let (fstrow,remxs) = splitAt rw xs
+                        in concat fstrow : list2table rw remxs
 
 --------------------------------------------------------------------------
 -- The page messages are implemented by a session store.

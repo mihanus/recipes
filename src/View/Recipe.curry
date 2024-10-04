@@ -5,7 +5,8 @@ module View.Recipe
   , listRecipesOfKeyword, singleRecipeView, leqRecipe ) where
 
 import Data.Char ( isSpace )
-import Data.List ( intersperse, isPrefixOf, isSuffixOf, last, sortBy, split )
+import Data.List ( intercalate, intersperse, isPrefixOf, isSuffixOf
+                 , last, sortBy, split )
 import Data.Time
 
 import Config.Storage
@@ -21,7 +22,7 @@ import View.EntitiesToHtml
 
 --- Shows keywords as comma-separated string.
 keywords2string :: [Keyword] -> String
-keywords2string keywords = concat (intersperse ", " (map keywordName keywords))
+keywords2string keywords = intercalate ", " (map keywordName keywords)
 
 --- Transform a comma-separated keyword list into the keyword names.
 string2keywords :: String -> [String]
@@ -150,7 +151,8 @@ singleRecipeView sinfo parentcats recipe keywords mbrecdesc mbpic mbpdf =
           (zip [0..] parentcats)),
    h1 $ [htxt $ recipeName recipe] ++
         maybe [] (\pdf -> [htxt " (", href pdf [htxt "PDF"], htxt ")"]) mbpdf,
-   h4 [htxt ("Stichworte: " ++ keywords2string keywords)]] ++
+   h4 [htxt "Stichworte: "],
+   par (intercalate [nbsp] (concatMap keywordToListView keywords))] ++
   (maybe [] (\pic -> [par [imageIcon pic]]) mbpic) ++
   (let ref = recipeReference recipe
    in if null ref then [] else [h4 $ recipeReference2HTML ref]) ++
