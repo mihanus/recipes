@@ -9,6 +9,8 @@ import Data.Time
 import HTML.Base
 import HTML.Styles.Bootstrap4
 import HTML.WUI
+import Network.URL         ( string2urlencoded )
+
 import Model.Recipes
 import Config.EntityRoutes
 import System.SessionInfo
@@ -63,5 +65,6 @@ keywordAlphabetView cs =
                          [htxt "Alle Stichworte"]]]
  where
   charButton c =
-    [hrefPrimButton (showControllerURL "Keyword" ["char", string2urlencoded [c]])
-                   [htxt [c]]]
+    [hrefPrimButton
+       (showControllerURL "Keyword" ["char", string2urlencoded [c]])
+       [htxt [c]]]

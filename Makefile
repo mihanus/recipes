@@ -28,8 +28,7 @@ CURRYOPTIONS=:set -time
 
 # Target directory where the compiled cgi programs, style sheets, etc
 # should be stored, e.g.: $(HOME)/public_html
-#WEBSERVERDIR=$(HOME)/public_html/SAMHANUS/SAM/recipes_$(SYSTEM)
-WEBSERVERDIR=$(HOME)/public_html/SAMHANUS/SAM/recipes
+WEBSERVERDIR=$(HOME)/public_html/SAMHANUS/www/SAM/recipes
 
 # Directory containing recipe data:
 DATADIR=$(WEBSERVERDIR)/../recipeData

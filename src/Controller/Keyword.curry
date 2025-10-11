@@ -7,6 +7,7 @@ import Data.Time
 import HTML.Base
 import HTML.Session
 import HTML.WUI
+import Network.URL          ( urlencoded2string )
 
 import Config.EntityRoutes
 import Config.Storage
