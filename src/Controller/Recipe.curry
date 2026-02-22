@@ -8,7 +8,7 @@ import System.PreludeHelpers
 import Data.List        ( delete, intersect, intersperse, sortBy )
 import Data.Maybe
 import Data.Time
-import System.Directory ( doesFileExist, renameFile )
+import System.Directory ( doesFileExist, removeFile, renameFile )
 import System.FilePath  ( (</>) )
 import System.Process   ( system )
 
@@ -299,10 +299,17 @@ checkUploadPictureRecipeController recipe =
     isjpg <- isJpegFile uplpicfile
     if expic && isjpg
       then do
-        system $ "chmod 644 " ++ uplpicfile
-        renameFile uplpicfile (pictureDir </> picfile)
-        setPageMessage $ "Neues Bild zum Rezept '" ++ recipeName recipe ++
-                         "' hinzugefügt"
+        let recpicfile = pictureDir </> picfile
+        -- reduce size of recipe picture to HD:
+        system $ unwords ["convert -geometry 1920x1920", uplpicfile, recpicfile]
+        exrecpic <- doesFileExist recpicfile
+        if exrecpic
+          then do
+            system $ "chmod 644 " ++ recpicfile
+            removeFile uplpicfile
+            setPageMessage $ "Neues Bild zum Rezept '" ++ recipeName recipe ++
+                             "' hinzugefügt"
+          else setPageMessage "Bildkonvertierung fehlgeschlage!"
       else setPageMessage $ if expic then "Nichts hochgeaden: kein JPEG!"
                                      else "Nichts hochgeladen"
     getCurrentCatsURL >>= redirectController
