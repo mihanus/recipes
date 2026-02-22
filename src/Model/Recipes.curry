@@ -53,7 +53,6 @@ data RecipeDescriptionID = RecipeDescriptionID Int
 
 --- The name of the SQLite database file.
 sqliteDBFile :: String
---sqliteDBFile = "/net/medoc/home/mh/home/data/recipes/Recipes.db"
 sqliteDBFile = recipeDB
 
 --- The ER description of the `Tagging` entity.

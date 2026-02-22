@@ -10,7 +10,6 @@ spiceyDataDir = "data"
 
 -- The directory containing all recipe data:
 recipeDataDir :: String
---recipeDataDir = "/net/medoc/home/mh/home/data/recipes"
 recipeDataDir = "../recipeData"
 
 recipeDB :: String

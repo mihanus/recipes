@@ -29,10 +29,10 @@ getRoutes =
       [--("Processes",Exact "spiceyProcesses",ProcessListController)
        ("Kategorien",Prefix "Category" "list",CategoryController)
       --,("New Category",Prefix "Category" "new",CategoryController)
-      ,("Alle Stichworte",Prefix "Keyword" "list",KeywordController)
+      ,("Stichworte",Prefix "Keyword" "list",KeywordController)
       --,("New Keyword",Prefix "Keyword" "new",KeywordController)
-      ,("Alle Rezepte (alphabetisch)",Prefix "Recipe" "list",RecipeController)
-      ,("Alle Rezepte (neue zuerst)",Prefix "Recipe" "listid",RecipeController)
+      ,("Rezepte (A-Z)",Prefix "Recipe" "list",RecipeController)
+      ,("Rezepte (neue)",Prefix "Recipe" "listid",RecipeController)
       --,("New Recipe",Prefix "Recipe" "new",RecipeController)
       --,("List RecipeDescription"
       -- ,Prefix "RecipeDescription" "list"

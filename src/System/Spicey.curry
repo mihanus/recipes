@@ -261,7 +261,7 @@ spiceyTitle = "Michaels Rezeptverwaltung"
 
 --- The home URL and brand shown at the left top of the main page.
 spiceyHomeBrand :: (String, [BaseHtml])
-spiceyHomeBrand = ("?", [htxt " Alle Rezepte"])
+spiceyHomeBrand = ("?", [htxt " Rezepte"])
 
 --- The standard footer of the Spicey page.
 spiceyFooter :: [BaseHtml]
